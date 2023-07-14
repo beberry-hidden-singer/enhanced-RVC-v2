@@ -606,7 +606,7 @@ class GeneratorBigV(torch.nn.Module):
 
         for i in range(self.num_upsamples):
             # upsampling
-            x = F.leaky_relu(x, modules.LRELU_SLOPE)  ## ???
+            # x = F.leaky_relu(x, modules.LRELU_SLOPE)  ## ???
             x = self.ups[i](x)
 
             # nsf

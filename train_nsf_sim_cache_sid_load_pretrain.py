@@ -196,7 +196,7 @@ def run(rank, n_gpus, hps):
                 logger.info("loaded pretrained %s" % (hps.pretrainG))
             print(
                 net_g.module.load_state_dict(
-                    torch.load(hps.pretrainG, map_location="cpu")["model"]
+                    torch.load(hps.pretrainG, map_location="cpu")["model"], strict=False
                 )
             )  ##测试不加载优化器
         if hps.pretrainD != "":
