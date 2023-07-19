@@ -1,17 +1,19 @@
 """modified from https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI/blob/main/train/losses.py
+with additional modifications from https://github.com/Nitin4525/SpeechEnhancement/blob/master/loss.py for weighted MR-STFT
 by karljeon44"""
 import torch
 from torch.nn import functional as F
 
 
-def feature_loss(fmap_r, fmap_g):
+def feature_loss(fmap_r, fmap_g, normalize=False):
   loss = 0
   for dr, dg in zip(fmap_r, fmap_g):
     for rl, gl in zip(dr, dg):
       rl = rl.float().detach()
       gl = gl.float()
       loss += torch.mean(torch.abs(rl - gl))
-
+  if normalize:
+    loss /= len(fmap_r)
   return loss * 2
 
 
@@ -27,11 +29,10 @@ def discriminator_loss(disc_real_outputs, disc_generated_outputs):
     loss += r_loss + g_loss
     r_losses.append(r_loss.item())
     g_losses.append(g_loss.item())
-
   return loss, r_losses, g_losses
 
 
-def generator_loss(disc_outputs):
+def generator_loss(disc_outputs, normalize=False):
   loss = 0
   gen_losses = []
   for dg in disc_outputs:
@@ -39,7 +40,8 @@ def generator_loss(disc_outputs):
     l = torch.mean((1 - dg) ** 2)
     gen_losses.append(l)
     loss += l
-
+  if normalize:
+    loss = loss / len(disc_outputs)
   return loss, gen_losses
 
 
@@ -119,7 +121,7 @@ class LogSTFTMagnitudeLoss(torch.nn.Module):
 class STFTLoss(torch.nn.Module):
   """STFT loss module."""
 
-  def __init__(self, fft_size=1024, shift_size=120, win_length=600, window="hann_window"):
+  def __init__(self, fft_size=1024, shift_size=120, win_length=600, window="hann_window", weight_by_factor=False):
     """Initialize STFT loss module."""
     super(STFTLoss, self).__init__()
     self.fft_size = fft_size
@@ -128,6 +130,7 @@ class STFTLoss(torch.nn.Module):
     self.window = getattr(torch, window)(win_length).cuda()
     self.spectral_convergenge_loss = SpectralConvergengeLoss()
     self.log_stft_magnitude_loss = LogSTFTMagnitudeLoss()
+    self.factor = fft_size / 2048 if weight_by_factor else 1.
 
   def forward(self, x, y):
     """Calculate forward propagation.
@@ -143,22 +146,24 @@ class STFTLoss(torch.nn.Module):
     sc_loss = self.spectral_convergenge_loss(x_mag, y_mag)
     mag_loss = self.log_stft_magnitude_loss(x_mag, y_mag)
 
-    return sc_loss, mag_loss
+    # return sc_loss, mag_loss
+    return sc_loss * self.factor, mag_loss * self.factor
 
 
 class MultiResolutionSTFTLoss(torch.nn.Module):
   """Multi resolution STFT loss module."""
 
-  def __init__(self, resolutions, window="hann_window"):
+  def __init__(self, resolutions, window="hann_window", weight_by_factor=False):
     """Initialize Multi resolution STFT loss module.
     Args:
         resolutions (list): List of (FFT size, hop size, window length).
         window (str): Window function type.
     """
     super(MultiResolutionSTFTLoss, self).__init__()
+
     self.stft_losses = torch.nn.ModuleList()
     for fs, ss, wl in resolutions:
-      self.stft_losses += [STFTLoss(fs, ss, wl, window)]
+      self.stft_losses += [STFTLoss(fs, ss, wl, window, weight_by_factor=weight_by_factor)]
 
   def forward(self, x, y):
     """Calculate forward propagation.
@@ -180,3 +185,4 @@ class MultiResolutionSTFTLoss(torch.nn.Module):
     mag_loss /= len(self.stft_losses)
 
     return sc_loss, mag_loss
+    # return sc_loss * self.factor_sc, mag_loss * self.factor_mag

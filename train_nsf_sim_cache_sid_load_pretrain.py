@@ -11,8 +11,8 @@ from time import sleep, time as ttime
 from train import utils
 hps = utils.get_hparams()
 assert hps.version == 'v2', "ervc-v2 only compatible with V2"
-os.environ["CUDA_VISIBLE_DEVICES"] = hps.gpus.replace("-", ",")
-n_gpus = len(hps.gpus.split("-"))
+# os.environ["CUDA_VISIBLE_DEVICES"] = hps.gpus.replace("-", ",")
+# n_gpus = len(hps.gpus.split("-"))
 from random import shuffle
 
 import torch
@@ -31,12 +31,8 @@ from train.data_utils import (
   TextAudioCollate,
   DistributedBucketSampler,
 )
-from lib.infer_pack.models import (
-  SynthesizerTrnMs768NSFsid as RVC_Model_f0,
-  SynthesizerTrnMs768NSFsid_nono as RVC_Model_nof0,
-  MultiPeriodDiscriminatorV2 as MultiPeriodDiscriminator,
-)
-from lib.infer_pack.discriminator import Discriminator
+from lib.infer_pack.models import SynthesizerTrnMs768NSFsid, SynthesizerTrnMs768NSFsid_nono
+from lib.infer_pack.discriminator import Discriminator, MultiPeriodDiscriminatorV2
 from train.losses import generator_loss, discriminator_loss, feature_loss, kl_loss, MultiResolutionSTFTLoss
 from train.mel_processing import mel_spectrogram_torch, spec_to_mel_torch
 from train.process_ckpt import savee
@@ -72,10 +68,10 @@ def main():
     train_dataset = TextAudioLoader(hps.data.training_files, hps.data)
   train_sampler = DistributedBucketSampler(
     train_dataset,
-    hps.train.batch_size * n_gpus,
+    hps.train.batch_size,
     # [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1200,1400],  # 16s
     [100, 200, 300, 400, 500, 600, 700, 800, 900],  # 16s
-    num_replicas=n_gpus,
+    num_replicas=1,
     rank=0,
     shuffle=True,
     )
@@ -96,7 +92,7 @@ def main():
     prefetch_factor=8,
   )
   if hps.if_f0 == 1:
-    net_g = RVC_Model_f0(
+    net_g = SynthesizerTrnMs768NSFsid(
       hps.data.filter_length // 2 + 1,
       hps.train.segment_size // hps.data.hop_length,
       **hps.model,
@@ -105,29 +101,27 @@ def main():
       bigv=hps.bigv
     )
   else:
-    net_g = RVC_Model_nof0(
+    net_g = SynthesizerTrnMs768NSFsid_nono(
       hps.data.filter_length // 2 + 1,
       hps.train.segment_size // hps.data.hop_length,
       **hps.model,
       is_half=hps.train.fp16_run,
       bigv=hps.bigv
     )
+
+  # discriminator init
+  if hps.mrd:
+    net_d = Discriminator(hps.resolutions, use_spectral_norm=hps.model.use_spectral_norm)
+  else:
+    net_d = MultiPeriodDiscriminatorV2(use_spectral_norm=hps.model.use_spectral_norm)
+
   if torch.cuda.is_available():
     net_g = net_g.cuda()
-
-  if hps.new_d:
-    net_d = Discriminator(use_spectral_norm=hps.model.use_spectral_norm)
-  else:
-    net_d = MultiPeriodDiscriminator(hps.model.use_spectral_norm)
-
-  if torch.cuda.is_available():
     net_d = net_d.cuda()
 
+  # init optim
   optim_g = torch.optim.AdamW(net_g.parameters(), hps.train.learning_rate, betas=hps.train.betas, eps=hps.train.eps,)
   optim_d = torch.optim.AdamW(net_d.parameters(), hps.train.learning_rate, betas=hps.train.betas, eps=hps.train.eps,)
-
-  net_g = net_g.to('cuda')
-  net_d = net_d.to('cuda')
 
   try:  # 如果能加载自动resume
     _, _, _, epoch_str = utils.load_checkpoint(utils.latest_checkpoint_path(hps.model_dir, "D_*.pth"), net_d, optim_d)
@@ -140,7 +134,7 @@ def main():
     global_step = 0
 
     if hps.pretrainG != "":
-      logger.info("loaded pretrained %s" % hps.pretrainG)
+      logger.info("loaded pretrained Generator from `%s`" % hps.pretrainG)
       pg = torch.load(hps.pretrainG, map_location="cpu")["model"]
       if hps.model.spk_embed_dim != 109:
         pg = {k: v for k, v in pg.items() if not k.startswith('emb_g')}
@@ -156,20 +150,33 @@ def main():
     #   print(net_g.dec.load_state_dict(vg, strict=False))
 
     if hps.pretrainD != "":
-      logger.info("loaded pretrained %s" % hps.pretrainD)
-      print(net_d.load_state_dict(torch.load(hps.pretrainD, map_location="cpu")["model"], strict=False))
+      if hps.mrd:
+        logger.info("loaded pretrained Multi-Period DiscriminatorV2 from `%s`" % hps.pretrainD)
+        print(net_d.MPD.load_state_dict(torch.load(hps.pretrainD, map_location="cpu")["model"]))
+      else:
+        logger.info("loaded pretrained Discriminator from `%s`" % hps.pretrainD)
+        print(net_d.load_state_dict(torch.load(hps.pretrainD, map_location="cpu")["model"]))
 
-  # # show model architecture
+    if hps.mrd and hps.pretrainS != "":
+      logger.info("loaded pretrained Multi-Resolution Discriminator from `%s`" % hps.pretrainS)
+      sovits_dict = torch.load(hps.pretrainS, map_location='cpu')['model_d']
+      mrd_dict = {f'{k.replace("MRD.", "")}':v for k,v in sovits_dict.items() if k.startswith('MRD')}
+      net_d.MRD.load_state_dict(mrd_dict)
+
+  # show model architecture
   # print(net_d)
   # print(net_g)
-  print("D Number of Trainable Params:", sum(p.numel() for p in net_d.parameters()))
-  print("G Number of Trainable Params:", sum(p.numel() for p in net_g.parameters()))
-  print(f"[!] Discriminator init type: {type(net_d)}")
+  logger.info("Net init Summary")
+  logger.info(f'Discriminator init type: %s', type(net_d))
+  logger.info(f'Generator Vocoder init type: %s', type(net_g.dec))
+  logger.info("D Number of Trainable Params: {:,}".format(sum(p.numel() for p in net_d.parameters())))
+  if hps.mrd:
+    logger.info("=> MRD Number of Trainable Params: {:,}".format(sum(p.numel() for p in net_d.MRD.parameters())))
+  logger.info("G Number of Trainable Params: {:,}".format(sum(p.numel() for p in net_g.parameters())))
 
   scheduler_g = torch.optim.lr_scheduler.ExponentialLR(optim_g, gamma=hps.train.lr_decay, last_epoch=epoch_str-2)
   scheduler_d = torch.optim.lr_scheduler.ExponentialLR(optim_d, gamma=hps.train.lr_decay, last_epoch=epoch_str-2)
   scaler = GradScaler(enabled=hps.train.fp16_run)
-
 
   cache = []
   for epoch in range(epoch_str, hps.train.epochs+1):
@@ -183,14 +190,15 @@ def main():
       logger=logger,
       writers=[writer, writer_eval],
       cache=cache,
-      new_d=hps.new_d
+      mrd=hps.mrd,
+      weighted_mrstft=hps.weighted_mrstft
     )
 
     scheduler_g.step()
     scheduler_d.step()
 
 
-def train_and_evaluate(epoch, hps, nets, optims, scaler, loaders, logger, writers, cache, new_d=False):
+def train_and_evaluate(epoch, hps, nets, optims, scaler, loaders, logger, writers, cache, mrd=False, weighted_mrstft=False):
   global global_step
   net_g, net_d = nets
   optim_g, optim_d = optims
@@ -202,9 +210,8 @@ def train_and_evaluate(epoch, hps, nets, optims, scaler, loaders, logger, writer
   net_g.train()
   net_d.train()
 
-  # stft_criterion = MultiResolutionSTFTLoss(net_d.resolutions) if is_new_d else None
-  resolutions = [(1024, 120, 600), (2048, 240, 1200), (4096, 480, 2400), (512, 50, 240)]
-  stft_criterion = MultiResolutionSTFTLoss(resolutions)
+  # may not be used but just init for now
+  stft_criterion = MultiResolutionSTFTLoss(hps.resolutions, weight_by_factor=weighted_mrstft)
 
   # Prepare data iterator
   if hps.if_cache_data_in_gpu:
@@ -300,15 +307,11 @@ def train_and_evaluate(epoch, hps, nets, optims, scaler, loaders, logger, writer
       wave = commons.slice_segments(wave, ids_slice * hps.data.hop_length, hps.train.segment_size)  # slice
 
       # Discriminator
-      if new_d:
+      if mrd:
         # Discriminator Loss
         disc_real, disc_fake = net_d(wave), net_d(y_hat.detach()),
         with autocast(enabled=False):
           loss_disc, losses_disc_r, losses_disc_g = discriminator_loss([x[0] for x in disc_real], [x[0] for x in disc_fake])
-          # for (score_fake, _), (score_real,_) in zip(disc_fake, disc_real):
-          #   loss_disc += torch.mean(torch.pow(score_real-1., 2))
-          #   loss_disc += torch.mean(torch.pow(score_fake, 2))
-          # loss_disc = hps.train.c_disc * loss_disc / len(disc_fake)
 
       else:
         y_d_hat_r, y_d_hat_g, _, _ = net_d(wave, y_hat.detach())
@@ -323,9 +326,9 @@ def train_and_evaluate(epoch, hps, nets, optims, scaler, loaders, logger, writer
 
     with autocast(enabled=hps.train.fp16_run):
       loss_stft = 0.
-      if new_d:
+      if mrd:
         # Generator
-        disc_fake, disc_real = net_d(wave), net_d(y_hat)
+        disc_real, disc_fake = net_d(wave), net_d(y_hat)
         with autocast(enabled=False):
           # 1. Mel Loss
           loss_mel = F.l1_loss(y_mel, y_hat_mel) * hps.train.c_mel
@@ -337,22 +340,14 @@ def train_and_evaluate(epoch, hps, nets, optims, scaler, loaders, logger, writer
           loss_sc, loss_mag = stft_criterion(y_hat.squeeze(1), wave.squeeze(1))
           loss_stft = (loss_sc + loss_mag) * hps.train.c_stft
 
-          # # 3. Score loss
-          # loss_score = 0.
-          # with autocast(enabled=False):
-          #   for score_fake, _ in disc_fake:
-          #     loss_score += torch.mean(torch.pow(score_fake - 1., 2))
-          #   loss_score = loss_score / len(disc_fake)
-
           # 4. Feature loss
           # loss_fm = feature_loss(fmap_r, fmap_g)
-          loss_fm = feature_loss([x[1] for x in disc_real], [x[1] for x in disc_fake])
+          loss_fm = feature_loss([x[1] for x in disc_real], [x[1] for x in disc_fake], normalize=True)
 
-          # 5. Generator loss
-          loss_gen, losses_gen = generator_loss([x[0] for x in disc_fake])
+          # 5. Generator loss (score loss)
+          loss_gen, losses_gen = generator_loss([x[0] for x in disc_fake], normalize=True)
 
           # loss_gen_all = loss_gen + loss_fm + loss_mel + loss_kl
-          # loss_gen_all = loss_mel + loss_kl + loss_score + loss_fm + loss_gen
           loss_gen_all = loss_kl + loss_mel + loss_stft +  loss_fm + loss_gen
       else:
         # Generator
@@ -381,13 +376,7 @@ def train_and_evaluate(epoch, hps, nets, optims, scaler, loaders, logger, writer
 
     if global_step % hps.train.log_interval == 0:
       lr = optim_g.param_groups[0]["lr"]
-      logger.info("Train Epoch: {} [{:.0f}%]".format(epoch, 100.*batch_idx / len(train_loader)))
 
-      logger.info([global_step, lr])
-      if new_d:
-        logger.info(f"[Losses] disc={loss_disc:.3f} | loss_gen={loss_gen:.3f} | loss_fm={loss_fm:.3f} | loss_mel={loss_mel:.3f} | loss_stft={loss_stft:.3f} | loss_kl={loss_kl:.3f}")
-      else:
-        logger.info(f"[Losses] disc={loss_disc:.3f} | loss_gen={loss_gen:.3f} | loss_fm={loss_fm:.3f} | loss_mel={loss_mel:.3f} | loss_kl={loss_kl:.3f}")
       scalar_dict = {
         "loss/g/total": loss_gen_all,
         "loss/d/total": loss_disc,
@@ -401,24 +390,29 @@ def train_and_evaluate(epoch, hps, nets, optims, scaler, loaders, logger, writer
         "loss/g/kl": loss_kl,
         "loss/g/gen": loss_gen,
       })
-      if new_d:
-        scalar_dict["loss/g/stft"] = loss_stft
 
       image_dict = {
         "slice/mel_org": utils.plot_spectrogram_to_numpy(y_mel[0].data.cpu().numpy()),
         "slice/mel_gen": utils.plot_spectrogram_to_numpy(y_hat_mel[0].data.cpu().numpy()),
         "all/mel": utils.plot_spectrogram_to_numpy(mel[0].data.cpu().numpy()),
       }
-      utils.summarize(writer=writer, global_step=global_step, images=image_dict, scalars=scalar_dict,)
+      utils.summarize(writer=writer, global_step=global_step, images=image_dict, scalars=scalar_dict)
+
+      loss_msg = f"loss_disc={loss_disc:.3f} | loss_gen={loss_gen:.3f} | loss_fm={loss_fm:.3f} | loss_mel={loss_mel:.3f} | loss_kl={loss_kl:.3f}"
+      if mrd:
+        loss_msg = f'{loss_msg} | loss_stft={loss_stft:.3f}'
+        scalar_dict["loss/g/stft"] = loss_stft
+      logger.info("[Epoch {} ({:.0f}%) | Step {}] {} LR={} ".format(epoch, 100.*batch_idx/len(train_loader), global_step, loss_msg, lr))
+
     global_step += 1
 
   if epoch % hps.save_every_epoch == 0:
     if hps.if_latest == 0:
-      utils.save_checkpoint(net_g,optim_g,hps.train.learning_rate,epoch,os.path.join(hps.model_dir, "G_{}.pth".format(global_step)),)
-      utils.save_checkpoint(net_d,optim_d,hps.train.learning_rate,epoch,os.path.join(hps.model_dir, "D_{}.pth".format(global_step)),)
+      utils.save_checkpoint(net_g,optim_g,hps.train.learning_rate,epoch,os.path.join(hps.model_dir, "G_{}.pth".format(global_step)))
+      utils.save_checkpoint(net_d,optim_d,hps.train.learning_rate,epoch,os.path.join(hps.model_dir, "D_{}.pth".format(global_step)))
     else:
-      utils.save_checkpoint(net_g,optim_g,hps.train.learning_rate,epoch,os.path.join(hps.model_dir, "G_{}.pth".format(2333333)),)
-      utils.save_checkpoint(net_d,optim_d,hps.train.learning_rate,epoch,os.path.join(hps.model_dir, "D_{}.pth".format(2333333)),)
+      utils.save_checkpoint(net_g,optim_g,hps.train.learning_rate,epoch,os.path.join(hps.model_dir, "G_{}.pth".format(2333333)))
+      utils.save_checkpoint(net_d,optim_d,hps.train.learning_rate,epoch,os.path.join(hps.model_dir, "D_{}.pth".format(2333333)))
     if hps.save_every_weights == "1":
       ckpt = net_g.state_dict()
       logger.info("saving ckpt %s_e%s:%s" % (hps.name,epoch,savee(ckpt,hps.sample_rate,hps.if_f0,hps.name + "_e%s_s%s" % (epoch, global_step),epoch,hps.version,hps)))

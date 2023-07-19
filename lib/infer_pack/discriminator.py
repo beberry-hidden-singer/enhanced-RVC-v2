@@ -17,23 +17,17 @@ logger = logging.getLogger(__name__)
 
 class Discriminator(nn.Module):
   """from https://github.com/PlayVoice/NSF-BigVGAN/blob/main/model/discriminator.py"""
-  def __init__(self, resolutions=None, use_spectral_norm=False):
+  def __init__(self, resolutions, use_spectral_norm=False):
     super().__init__()
 
-    # (filter_length, hop_length, win_length)
-    if not resolutions:
-      resolutions = [(1024, 120, 600), (2048, 240, 1200), (4096, 480, 2400), (512, 50, 240)]
-    self.resolutions = resolutions
-
-    self.mrd = MultiResolutionDiscriminator(resolutions, use_spectral_norm=use_spectral_norm)
-    self.mpd = MultiPeriodDiscriminator(use_spectral_norm=use_spectral_norm)
-    self.msd = DiscriminatorS(use_spectral_norm=use_spectral_norm)
+    self.MRD = MultiResolutionDiscriminator(resolutions, use_spectral_norm=use_spectral_norm)
+    self.MPD = MultiPeriodDiscriminatorV2(use_spectral_norm=use_spectral_norm)
 
   def forward(self, x):
-    r = self.mrd(x)
-    p = self.mpd(x)
-    s = self.msd(x)
-    return r + p + s
+    r = self.MRD(x)
+    p = self.MPD(x)
+    # s = self.msd(x)
+    return r + p
 
 
 class DiscriminatorS(nn.Module):
@@ -67,22 +61,30 @@ class DiscriminatorS(nn.Module):
     return [(x, fmap)]
 
 
-class MultiPeriodDiscriminator(torch.nn.Module):
+class MultiPeriodDiscriminatorV2(torch.nn.Module):
   """from https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI/blob/main/lib/infer_pack/models.py#L1006
 
   `MultiPeriodDiscriminatorV2` in original RVC (includes 23 and 37 as additional periods)
   """
   def __init__(self, use_spectral_norm=False):
-    super(MultiPeriodDiscriminator, self).__init__()
+    super(MultiPeriodDiscriminatorV2, self).__init__()
     # periods = [2, 3, 5, 7, 11, 17]
     periods = [2, 3, 5, 7, 11, 17, 23, 37]
 
-    self.discriminators = nn.ModuleList([DiscriminatorP(i, use_spectral_norm=use_spectral_norm) for i in periods])
+    # self.discriminators = nn.ModuleList([DiscriminatorP(i, use_spectral_norm=use_spectral_norm) for i in periods])
+    self.discriminators = nn.ModuleList(
+      [DiscriminatorS(use_spectral_norm=use_spectral_norm)] + \
+      [DiscriminatorP(period, use_spectral_norm=use_spectral_norm) for period in periods]
+    )
 
   def forward(self, x):
     ret = list()
     for disc in self.discriminators:
-      ret.append(disc(x))
+      disc_out = disc(x)
+      if isinstance(disc_out, list):
+        ret += disc_out
+      else:
+        ret.append(disc(x))
     return ret  # [(score, fmap), ...]
 
   def forward_ref(self, y, y_hat):
@@ -149,6 +151,8 @@ class DiscriminatorR(torch.nn.Module):
     super(DiscriminatorR, self).__init__()
 
     self.resolution = resolution
+    self.LRELU_SLOPE = modules.LRELU_SLOPE
+
     norm_f = weight_norm if use_spectral_norm == False else spectral_norm
 
     self.convs = nn.ModuleList([
@@ -167,7 +171,7 @@ class DiscriminatorR(torch.nn.Module):
     x = x.unsqueeze(1)
     for l in self.convs:
       x = l(x)
-      x = F.leaky_relu(x, modules.LRELU_SLOPE)
+      x = F.leaky_relu(x, self.LRELU_SLOPE)
       fmap.append(x)
     x = self.conv_post(x)
     fmap.append(x)
@@ -187,8 +191,14 @@ class DiscriminatorR(torch.nn.Module):
 
 class MultiResolutionDiscriminator(torch.nn.Module):
   """from https://github.com/PlayVoice/NSF-BigVGAN/blob/main/model/mrd.py"""
-  def __init__(self, resolutions, use_spectral_norm=False):
+  def __init__(self, resolutions=None, use_spectral_norm=False):
     super(MultiResolutionDiscriminator, self).__init__()
+
+    # (filter_length, hop_length, win_length)
+    if not resolutions:
+      resolutions = [(1024, 120, 600), (2048, 240, 1200), (4096, 480, 2400), (512, 50, 240)]
+    self.resolutions = resolutions
+
     self.resolutions = resolutions
     self.discriminators = nn.ModuleList(
       [DiscriminatorR(resolution, use_spectral_norm=use_spectral_norm) for resolution in self.resolutions]

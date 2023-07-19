@@ -315,9 +315,9 @@ def get_hparams(init=True):
   parser.add_argument(
     "-pd", "--pretrainD", type=str, default="", help="Pretrained Generator path"
   )
-  # parser.add_argument(
-  #     "-pv", "--pretrainV", type=str, default="", help="Pretrained BigVGAN path"
-  # )
+  parser.add_argument(
+      "-ps", "--pretrainS", type=str, default="", help="Pretrained Sovits-5.0 path"
+  )
   parser.add_argument("-g", "--gpus", type=str, default="0", help="split by -")
   parser.add_argument(
     "-bs", "--batch_size", type=int, required=True, help="batch size"
@@ -358,8 +358,9 @@ def get_hparams(init=True):
     help="if caching the dataset in GPU memory, 1 or 0",
   )
 
-  parser.add_argument('--new_d', action='store_true', help='whether to use new Discriminator')
+  parser.add_argument('--mrd', action='store_true', help='whether to use Multi-Resolution Discriminator')
   parser.add_argument('--bigv', action='store_true', help='whether to use BigVGAN as Decoder in Generator')
+  parser.add_argument('--weighted_mrstft', action='store_true', help='whether to use weighted MR-STFT Loss')
 
   args = parser.parse_args()
   name = args.experiment_dir
@@ -390,9 +391,17 @@ def get_hparams(init=True):
   hparams.total_epoch = args.total_epoch
   hparams.pretrainG = args.pretrainG
   hparams.pretrainD = args.pretrainD
-  # hparams.pretrainV = args.pretrainV
-  hparams.new_d = args.new_d
+
+  ### custom args
+  hparams.pretrainS = args.pretrainS
+  hparams.mrd = args.mrd
   hparams.bigv = args.bigv
+  hparams.weighted_mrstft = args.weighted_mrstft
+
+  # default resolutions
+  hparams.resolutions = [(1024, 120, 600), (2048, 240, 1200), (4096, 480, 2400), (512, 50, 240)]
+  # hparams.resolutions = [(1024, 120, 600), (2048, 240, 1200), (512, 50, 240)]
+
   hparams.version = args.version
   hparams.gpus = args.gpus
   hparams.train.batch_size = args.batch_size
@@ -423,31 +432,6 @@ def get_hparams_from_file(config_path):
 
   hparams = HParams(**config)
   return hparams
-
-
-def check_git_hash(model_dir):
-  source_dir = os.path.dirname(os.path.realpath(__file__))
-  if not os.path.exists(os.path.join(source_dir, ".git")):
-    logger.warn(
-      "{} is not a git repository, therefore hash value comparison will be ignored.".format(
-        source_dir
-      )
-    )
-    return
-
-  cur_hash = subprocess.getoutput("git rev-parse HEAD")
-
-  path = os.path.join(model_dir, "githash")
-  if os.path.exists(path):
-    saved_hash = open(path).read()
-    if saved_hash != cur_hash:
-      logger.warn(
-        "git hash values are different. {}(saved) != {}(current)".format(
-          saved_hash[:8], cur_hash[:8]
-        )
-      )
-  else:
-    open(path, "w").write(cur_hash)
 
 
 def get_logger(model_dir, filename="train.log"):

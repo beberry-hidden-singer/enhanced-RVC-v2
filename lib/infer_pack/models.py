@@ -843,7 +843,6 @@ class SynthesizerTrnMs768NSFsid(nn.Module):
     self.flow = ResidualCouplingBlock(inter_channels, hidden_channels, 5, 1, 3, gin_channels=gin_channels)
     self.emb_g = nn.Embedding(self.spk_embed_dim, gin_channels)
     print("gin_channels:", gin_channels, "self.spk_embed_dim:", self.spk_embed_dim)
-    print(f'[!] Vocoder init type: {type(self.dec)}')
 
   def remove_weight_norm(self):
     self.dec.remove_weight_norm()
