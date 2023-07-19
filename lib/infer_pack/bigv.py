@@ -1,3 +1,4 @@
+"""from https://github.com/PlayVoice/NSF-BigVGAN/blob/main/model/bigv.py"""
 import torch
 import torch.nn as nn
 

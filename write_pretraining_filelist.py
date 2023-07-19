@@ -2,16 +2,15 @@
 # -*- coding: utf-8 -*-
 # Author: karljeon44
 # Date: 7/2/23 12:03 AM
-import json
+import argparse
 import logging
 import os
-import sys
 from random import shuffle
 
 logger = logging.getLogger(__name__)
 
 
-def main(exp_dir):
+def main(exp_dir, sample_rate, infer_spk_id=False):
   print("EXP Dir:", exp_dir)
 
   gt_wavs_dir = "%s/0_gt_wavs" % exp_dir
@@ -25,19 +24,20 @@ def main(exp_dir):
           & set([name.split(".")[0] for name in os.listdir(f0nsf_dir)])
   )
 
-  print("Names:", len(names))
+  print("Num Names:", len(names))
+  # print(names)
 
 
   speaker_mapping = dict()
   # speaker_mapping_count =
 
   opt = []
+  unique_speaker_ids = []
   for name in names:
-    spk_id_src = name.split('_')[-1]
-    if spk_id_src not in speaker_mapping:
-      speaker_mapping[spk_id_src] = len(speaker_mapping)
-    spk_id = speaker_mapping[spk_id_src]
-    # TODO: map singer id to a unique consecutive int, starting from 0
+    speaker_id = name.split('_')[-1] if infer_spk_id else '0'
+    # if spk_id_src not in speaker_mapping:
+    #   speaker_mapping[spk_id_src] = len(speaker_mapping)
+    # spk_id = speaker_mapping[spk_id_src]
     opt.append(
       "%s/%s.wav|%s/%s.npy|%s/%s.wav.npy|%s/%s.wav.npy|%s"
       % (
@@ -49,28 +49,39 @@ def main(exp_dir):
         name,
         f0nsf_dir.replace("\\", "\\\\"),
         name,
-        spk_id,
+        speaker_id,
       )
     )
+    if speaker_id not in unique_speaker_ids:
+      unique_speaker_ids.append(speaker_id)
 
-  print("Speaker Mapping:", speaker_mapping)
-  with open('./speaker_mapping.json', 'w') as f:
-    json.dump(speaker_mapping, f)
-  for spk_id in speaker_mapping.values():
+
+  # print("Speaker Mapping:", speaker_mapping)
+  # print(opt)
+  # print(unique_speaker_ids)
+  # with open('./speaker_mapping.json', 'w') as f:
+  #   json.dump(speaker_mapping, f)
+  print(len(opt))
+
+  for spk_id in unique_speaker_ids:
     for _ in range(2):
       opt.append(
-        "./logs/mute/0_gt_wavs/mute%s.wav|./logs/mute/3_feature%s/mute.npy|./logs/mute/2a_f0/mute.wav.npy|./logs/mute/2b-f0nsf/mute.wav.npy|%s"
-        % ('40k', 768, spk_id)
+        "./logs/mute/0_gt_wavs/mute%s.wav|./logs/mute/3_feature%s/mute.npy|./logs/mute/2a_f0/mute.wav.npy|./logs/mute/2b-f0nsf/mute.wav.npy|%s" \
+        % (sample_rate, 768, spk_id)
       )
 
   shuffle(opt)
+  print(len(opt))
   with open("%s/filelist.txt" % exp_dir, "w") as f:
     f.write("\n".join(opt))
   print("write filelist done")
 
 
 if __name__ == '__main__':
-  log_dir = './logs/bebe_gas'
-  if len(sys.argv) > 1:
-    log_dir = sys.argv[1]
-  main(log_dir)
+  argparser = argparse.ArgumentParser()
+  argparser.add_argument('log_dir', help='dirpath to current log')
+  argparser.add_argument('-sr', '--sample_rate', default='40k', help='target sample rate')
+  argparser.add_argument('--infer_spk_id', action='store_true', help='whether to infer speaker ids from filenames')
+  args = argparser.parse_args()
+
+  main(args.log_dir, args.sample_rate, infer_spk_id=args.infer_spk_id)

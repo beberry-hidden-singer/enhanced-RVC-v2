@@ -88,7 +88,8 @@ def spectrogram_torch(y, n_fft, sampling_rate, hop_size, win_size, center=False)
     )
 
     # Linear-frequency Linear-amplitude spectrogram :: (B, Freq, Frame, RealComplex=2) -> (B, Freq, Frame)
-    spec = torch.sqrt(spec.pow(2).sum(-1) + 1e-6)
+    # spec = torch.sqrt(spec.pow(2).sum(-1) + 1e-6)
+    spec = torch.sqrt(spec.pow(2).sum(-1) + 1e-9)
     return spec
 
 
@@ -111,9 +112,7 @@ def spec_to_mel_torch(spec, n_fft, num_mels, sampling_rate, fmin, fmax):
     return melspec
 
 
-def mel_spectrogram_torch(
-    y, n_fft, num_mels, sampling_rate, hop_size, win_size, fmin, fmax, center=False
-):
+def mel_spectrogram_torch(y, n_fft, num_mels, sampling_rate, hop_size, win_size, fmin, fmax, center=False):
     """Convert waveform into Mel-frequency Log-amplitude spectrogram.
 
     Args:

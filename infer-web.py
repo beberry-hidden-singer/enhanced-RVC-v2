@@ -43,9 +43,7 @@ logging.getLogger("numba").setLevel(logging.WARNING)
 
 tmp = os.path.join(now_dir, "TEMP")
 shutil.rmtree(tmp, ignore_errors=True)
-shutil.rmtree(
-    "%s/runtime/Lib/site-packages/lib.infer_pack" % (now_dir), ignore_errors=True
-)
+shutil.rmtree("%s/runtime/Lib/site-packages/lib.infer_pack" % (now_dir), ignore_errors=True)
 shutil.rmtree("%s/runtime/Lib/site-packages/uvr5_pack" % (now_dir), ignore_errors=True)
 os.makedirs(tmp, exist_ok=True)
 os.makedirs(os.path.join(now_dir, "logs"), exist_ok=True)
@@ -1266,14 +1264,10 @@ def export_onnx(ModelPath, ExportedPath):
 
     device = "cpu"  # 导出时设备（不影响使用模型）
 
-    net_g = SynthesizerTrnMsNSFsidM(
-        *cpt["config"], is_half=False, version=cpt.get("version", "v1")
-    )  # fp32导出（C++要支持fp16必须手动将内存重新排列所以暂时不用fp16）
+    net_g = SynthesizerTrnMsNSFsidM(*cpt["config"], is_half=False, version=cpt.get("version", "v1"))  # fp32导出（C++要支持fp16必须手动将内存重新排列所以暂时不用fp16）
     net_g.load_state_dict(cpt["weight"], strict=False)
     input_names = ["phone", "phone_lengths", "pitch", "pitchf", "ds", "rnd"]
-    output_names = [
-        "audio",
-    ]
+    output_names = ["audio",]
     # net_g.construct_spkmixmap(n_speaker) 多角色混合轨道导出
     torch.onnx.export(
         net_g,
@@ -1324,24 +1318,18 @@ with gr.Blocks() as app:
                 )
                 clean_button.click(fn=clean, inputs=[], outputs=[sid0])
             with gr.Group():
-                gr.Markdown(
-                    value=i18n("男转女推荐+12key, 女转男推荐-12key, 如果音域爆炸导致音色失真也可以自己调整到合适音域. ")
-                )
+                gr.Markdown(value=i18n("男转女推荐+12key, 女转男推荐-12key, 如果音域爆炸导致音色失真也可以自己调整到合适音域. "))
                 with gr.Row():
                     with gr.Column():
-                        vc_transform0 = gr.Number(
-                            label=i18n("变调(整数, 半音数量, 升八度12降八度-12)"), value=0
-                        )
+                        vc_transform0 = gr.Number(label=i18n("变调(整数, 半音数量, 升八度12降八度-12)"), value=0)
                         input_audio0 = gr.Textbox(
                             label=i18n("输入待处理音频文件路径(默认是正确格式示例)"),
-                            value="E:\\codes\\py39\\test-20230416b\\todo-songs\\冬之花clip1.wav",
+                            value="../../boram_vocals.wav",
                         )
                         f0method0 = gr.Radio(
-                            label=i18n(
-                                "选择音高提取算法,输入歌声可用pm提速,harvest低音好但巨慢无比,crepe效果好但吃GPU"
-                            ),
+                            label=i18n("选择音高提取算法,输入歌声可用pm提速,harvest低音好但巨慢无比,crepe效果好但吃GPU"),
                             choices=["pm", "harvest", "crepe", "rmvpe"],
-                            value="pm",
+                            value="crepe",
                             interactive=True,
                         )
                         filter_radius0 = gr.Slider(
@@ -1363,14 +1351,8 @@ with gr.Blocks() as app:
                             choices=sorted(index_paths),
                             interactive=True,
                         )
-                        refresh_button.click(
-                            fn=change_choices, inputs=[], outputs=[sid0, file_index2]
-                        )
-                        # file_big_npy1 = gr.Textbox(
-                        #     label=i18n("特征文件路径"),
-                        #     value="E:\\codes\py39\\vits_vc_gpu_train\\logs\\mi-test-1key\\total_fea.npy",
-                        #     interactive=True,
-                        # )
+                        refresh_button.click(fn=change_choices, inputs=[], outputs=[sid0, file_index2])
+
                         index_rate1 = gr.Slider(
                             minimum=0,
                             maximum=1,
@@ -1397,9 +1379,7 @@ with gr.Blocks() as app:
                         protect0 = gr.Slider(
                             minimum=0,
                             maximum=0.5,
-                            label=i18n(
-                                "保护清辅音和呼吸声，防止电音撕裂等artifact，拉满0.5不开启，调低加大保护力度但可能降低索引效果"
-                            ),
+                            label=i18n("保护清辅音和呼吸声，防止电音撕裂等artifact，拉满0.5不开启，调低加大保护力度但可能降低索引效果"),
                             value=0.33,
                             step=0.01,
                             interactive=True,
@@ -1434,14 +1414,10 @@ with gr.Blocks() as app:
                 )
                 with gr.Row():
                     with gr.Column():
-                        vc_transform1 = gr.Number(
-                            label=i18n("变调(整数, 半音数量, 升八度12降八度-12)"), value=0
-                        )
+                        vc_transform1 = gr.Number(label=i18n("变调(整数, 半音数量, 升八度12降八度-12)"), value=0)
                         opt_input = gr.Textbox(label=i18n("指定输出文件夹"), value="opt")
                         f0method1 = gr.Radio(
-                            label=i18n(
-                                "选择音高提取算法,输入歌声可用pm提速,harvest低音好但巨慢无比,crepe效果好但吃GPU"
-                            ),
+                            label=i18n("选择音高提取算法,输入歌声可用pm提速,harvest低音好但巨慢无比,crepe效果好但吃GPU"),
                             choices=["pm", "harvest", "crepe", "rmvpe"],
                             value="pm",
                             interactive=True,
@@ -1470,11 +1446,6 @@ with gr.Blocks() as app:
                             inputs=[],
                             outputs=file_index4,
                         )
-                        # file_big_npy2 = gr.Textbox(
-                        #     label=i18n("特征文件路径"),
-                        #     value="E:\\codes\\py39\\vits_vc_gpu_train\\logs\\mi-test-1key\\total_fea.npy",
-                        #     interactive=True,
-                        # )
                         index_rate2 = gr.Slider(
                             minimum=0,
                             maximum=1,
@@ -1562,7 +1533,7 @@ with gr.Blocks() as app:
                     with gr.Column():
                         dir_wav_input = gr.Textbox(
                             label=i18n("输入待处理音频文件夹路径"),
-                            value="E:\\codes\\py39\\test-20230416b\\todo-songs\\todo-songs",
+                            value="../../boram_vocals.wav",
                         )
                         wav_inputs = gr.File(
                             file_count="multiple", label=i18n("也可批量输入音频文件, 二选一, 优先读文件夹")
@@ -1606,16 +1577,12 @@ with gr.Blocks() as app:
                         [vc_output4],
                     )
         with gr.TabItem(i18n("训练")):
-            gr.Markdown(
-                value=i18n(
-                    "step1: 填写实验配置. 实验数据放在logs下, 每个实验一个文件夹, 需手工输入实验名路径, 内含实验配置, 日志, 训练得到的模型文件. "
-                )
-            )
+            gr.Markdown(value=i18n("step1: 填写实验配置. 实验数据放在logs下, 每个实验一个文件夹, 需手工输入实验名路径, 内含实验配置, 日志, 训练得到的模型文件. "))
             with gr.Row():
-                exp_dir1 = gr.Textbox(label=i18n("输入实验名"), value="mi-test")
+                exp_dir1 = gr.Textbox(label=i18n("输入实验名"), value="bebe")
                 sr2 = gr.Radio(
                     label=i18n("目标采样率"),
-                    choices=["40k", "48k"],
+                    choices=["32k", "40k", "48k"],
                     value="40k",
                     interactive=True,
                 )
@@ -1628,7 +1595,7 @@ with gr.Blocks() as app:
                 version19 = gr.Radio(
                     label=i18n("版本"),
                     choices=["v1", "v2"],
-                    value="v1",
+                    value="v2",
                     interactive=True,
                     visible=True,
                 )
@@ -1641,15 +1608,10 @@ with gr.Blocks() as app:
                     interactive=True,
                 )
             with gr.Group():  # 暂时单人的, 后面支持最多4人的#数据处理
-                gr.Markdown(
-                    value=i18n(
-                        "step2a: 自动遍历训练文件夹下所有可解码成音频的文件并进行切片归一化, 在实验目录下生成2个wav文件夹; 暂时只支持单人训练. "
-                    )
+                gr.Markdown(value=i18n("step2a: 自动遍历训练文件夹下所有可解码成音频的文件并进行切片归一化, 在实验目录下生成2个wav文件夹; 暂时只支持单人训练. ")
                 )
                 with gr.Row():
-                    trainset_dir4 = gr.Textbox(
-                        label=i18n("输入训练文件夹路径"), value="E:\\语音音频+标注\\米津玄师\\src"
-                    )
+                    trainset_dir4 = gr.Textbox(label=i18n("输入训练文件夹路径"), value="E:\\语音音频+标注\\米津玄师\\src")
                     spk_id5 = gr.Slider(
                         minimum=0,
                         maximum=4,
@@ -1660,9 +1622,7 @@ with gr.Blocks() as app:
                     )
                     but1 = gr.Button(i18n("处理数据"), variant="primary")
                     info1 = gr.Textbox(label=i18n("输出信息"), value="")
-                    but1.click(
-                        preprocess_dataset, [trainset_dir4, exp_dir1, sr2, np7], [info1]
-                    )
+                    but1.click(preprocess_dataset, [trainset_dir4, exp_dir1, sr2, np7], [info1])
             with gr.Group():
                 gr.Markdown(value=i18n("step2b: 使用CPU提取音高(如果模型带音高), 使用GPU提取特征(选择卡号)"))
                 with gr.Row():
@@ -1675,26 +1635,20 @@ with gr.Blocks() as app:
                         gpu_info9 = gr.Textbox(label=i18n("显卡信息"), value=gpu_info)
                     with gr.Column():
                         f0method8 = gr.Radio(
-                            label=i18n(
-                                "选择音高提取算法:输入歌声可用pm提速,高质量语音但CPU差可用dio提速,harvest质量更好但慢"
-                            ),
+                            label=i18n("选择音高提取算法:输入歌声可用pm提速,高质量语音但CPU差可用dio提速,harvest质量更好但慢"),
                             choices=["pm", "harvest", "dio"],
                             value="harvest",
                             interactive=True,
                         )
                     but2 = gr.Button(i18n("特征提取"), variant="primary")
                     info2 = gr.Textbox(label=i18n("输出信息"), value="", max_lines=8)
-                    but2.click(
-                        extract_f0_feature,
-                        [gpus6, np7, f0method8, if_f0_3, exp_dir1, version19],
-                        [info2],
-                    )
+                    but2.click(extract_f0_feature,[gpus6, np7, f0method8, if_f0_3, exp_dir1, version19],[info2],)
             with gr.Group():
                 gr.Markdown(value=i18n("step3: 填写训练设置, 开始训练模型和索引"))
                 with gr.Row():
                     save_epoch10 = gr.Slider(
                         minimum=0,
-                        maximum=50,
+                        maximum=100,
                         step=1,
                         label=i18n("保存频率save_every_epoch"),
                         value=5,
@@ -1702,7 +1656,7 @@ with gr.Blocks() as app:
                     )
                     total_epoch11 = gr.Slider(
                         minimum=0,
-                        maximum=1000,
+                        maximum=10000,
                         step=1,
                         label=i18n("总训练轮数total_epoch"),
                         value=20,
@@ -1710,7 +1664,7 @@ with gr.Blocks() as app:
                     )
                     batch_size12 = gr.Slider(
                         minimum=1,
-                        maximum=40,
+                        maximum=200,
                         step=1,
                         label=i18n("每张显卡的batch_size"),
                         value=default_batch_size,
@@ -1832,7 +1786,7 @@ with gr.Blocks() as app:
                 with gr.Row():
                     sr_ = gr.Radio(
                         label=i18n("目标采样率"),
-                        choices=["40k", "48k"],
+                        choices=["32k", "40k", "48k"],
                         value="40k",
                         interactive=True,
                     )
@@ -1854,7 +1808,7 @@ with gr.Blocks() as app:
                     version_2 = gr.Radio(
                         label=i18n("模型版本型号"),
                         choices=["v1", "v2"],
-                        value="v1",
+                        value="v2",
                         interactive=True,
                     )
                 with gr.Row():
@@ -1877,12 +1831,8 @@ with gr.Blocks() as app:
             with gr.Group():
                 gr.Markdown(value=i18n("修改模型信息(仅支持weights文件夹下提取的小模型文件)"))
                 with gr.Row():
-                    ckpt_path0 = gr.Textbox(
-                        label=i18n("模型路径"), value="", interactive=True
-                    )
-                    info_ = gr.Textbox(
-                        label=i18n("要改的模型信息"), value="", max_lines=8, interactive=True
-                    )
+                    ckpt_path0 = gr.Textbox(label=i18n("模型路径"), value="", interactive=True)
+                    info_ = gr.Textbox(label=i18n("要改的模型信息"), value="", max_lines=8, interactive=True)
                     name_to_save1 = gr.Textbox(
                         label=i18n("保存的文件名, 默认空为和源文件同名"),
                         value="",
@@ -1896,22 +1846,16 @@ with gr.Blocks() as app:
             with gr.Group():
                 gr.Markdown(value=i18n("查看模型信息(仅支持weights文件夹下提取的小模型文件)"))
                 with gr.Row():
-                    ckpt_path1 = gr.Textbox(
-                        label=i18n("模型路径"), value="", interactive=True
-                    )
+                    ckpt_path1 = gr.Textbox(label=i18n("模型路径"), value="", interactive=True)
                     but8 = gr.Button(i18n("查看"), variant="primary")
                     info6 = gr.Textbox(label=i18n("输出信息"), value="", max_lines=8)
                 but8.click(show_info, [ckpt_path1], info6)
             with gr.Group():
-                gr.Markdown(
-                    value=i18n(
-                        "模型提取(输入logs文件夹下大文件模型路径),适用于训一半不想训了模型没有自动提取保存小文件模型,或者想测试中间模型的情况"
-                    )
-                )
+                gr.Markdown(value=i18n("模型提取(输入logs文件夹下大文件模型路径),适用于训一半不想训了模型没有自动提取保存小文件模型,或者想测试中间模型的情况"))
                 with gr.Row():
                     ckpt_path2 = gr.Textbox(
                         label=i18n("模型路径"),
-                        value="E:\\codes\\py39\\logs\\mi-test_f0_48k\\G_23333.pth",
+                        value="logs/bebe/G_233333.pth",
                         interactive=True,
                     )
                     save_name = gr.Textbox(
@@ -1953,9 +1897,7 @@ with gr.Blocks() as app:
             with gr.Row():
                 ckpt_dir = gr.Textbox(label=i18n("RVC模型路径"), value="", interactive=True)
             with gr.Row():
-                onnx_dir = gr.Textbox(
-                    label=i18n("Onnx输出路径"), value="", interactive=True
-                )
+                onnx_dir = gr.Textbox(label=i18n("Onnx输出路径"), value="", interactive=True)
             with gr.Row():
                 infoOnnx = gr.Label(label="info")
             with gr.Row():
@@ -1974,11 +1916,6 @@ with gr.Blocks() as app:
                 gr.Markdown(value=info)
             except:
                 gr.Markdown(traceback.format_exc())
-
-        # with gr.TabItem(i18n("招募音高曲线前端编辑器")):
-        #     gr.Markdown(value=i18n("加开发群联系我xxxxx"))
-        # with gr.TabItem(i18n("点击查看交流、问题反馈群号")):
-        #     gr.Markdown(value=i18n("xxxxx"))
 
     if config.iscolab:
         app.queue(concurrency_count=511, max_size=1022).launch(share=True)

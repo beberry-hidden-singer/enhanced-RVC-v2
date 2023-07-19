@@ -1,6 +1,6 @@
 {
   "train": {
-    "log_interval": 200,
+    "log_interval": 100,
     "seed": 1234,
     "epochs": 20000,
     "learning_rate": 1e-4,
@@ -12,8 +12,10 @@
     "segment_size": 11520,
     "init_lr_ratio": 1,
     "warmup_epochs": 0,
+    "c_disc": 3.5,
     "c_mel": 45,
-    "c_kl": 1.0
+    "c_kl": 1.0,
+    "c_stft": 2.5
   },
   "data": {
     "max_wav_value": 32768.0,

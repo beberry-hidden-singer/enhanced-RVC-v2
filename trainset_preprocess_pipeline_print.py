@@ -1,3 +1,6 @@
+"""modified from https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI/blob/main/trainset_preprocess_pipeline_print.py
+by karljeon44
+"""
 import sys, os, multiprocessing
 from scipy import signal
 
@@ -58,9 +61,7 @@ class PreProcess:
         if tmp_max > 2.5:
             print("%s-%s-%s-filtered" % (idx0, idx1, tmp_max))
             return
-        tmp_audio = (tmp_audio / tmp_max * (self.max * self.alpha)) + (
-            1 - self.alpha
-        ) * tmp_audio
+        tmp_audio = (tmp_audio / tmp_max * (self.max * self.alpha)) + (1 - self.alpha) * tmp_audio
 
         if spk_id is not None:
             msg1 = "%s/%s_%s_%s.wav" % (self.gt_wavs_dir, idx0, idx1, spk_id)
@@ -69,19 +70,9 @@ class PreProcess:
             msg1 = "%s/%s_%s.wav" % (self.gt_wavs_dir, idx0, idx1)
             msg2 = "%s/%s_%s.wav" % (self.wavs16k_dir, idx0, idx1)
 
-        wavfile.write(
-            msg1,
-            self.sr,
-            tmp_audio.astype(np.float32),
-        )
-        tmp_audio = librosa.resample(
-            tmp_audio, orig_sr=self.sr, target_sr=16000
-        )  # , res_type="soxr_vhq"
-        wavfile.write(
-            msg2,
-            16000,
-            tmp_audio.astype(np.float32),
-        )
+        wavfile.write(msg1, self.sr, tmp_audio.astype(np.float32),)
+        tmp_audio = librosa.resample(tmp_audio, orig_sr=self.sr, target_sr=16000 )  # , res_type="soxr_vhq"
+        wavfile.write(msg2, 16000, tmp_audio.astype(np.float32),)
 
     def pipeline(self, path, idx0):
         try:
@@ -92,8 +83,8 @@ class PreProcess:
 
             spk_id = None
             try:
-                fname_split = os.path.basename(path).split('_')
-                spk_id = str(int(fname_split[-1][0]))
+                fname_split = os.path.basename(os.path.splitext(path)[0]).split('_')
+                spk_id = str(int(fname_split[-1]))
             except ValueError:
                 pass
             # print("Spk ID:", repr(spk_id))
@@ -123,19 +114,14 @@ class PreProcess:
 
     def pipeline_mp_inp_dir(self, inp_root, n_p):
         try:
-            infos = [
-                ("%s/%s" % (inp_root, name), idx)
-                for idx, name in enumerate(sorted(list(os.listdir(inp_root))))
-            ]
+            infos = [("%s/%s" % (inp_root, name), idx) for idx, name in enumerate(sorted(list(os.listdir(inp_root))))]
             if noparallel:
                 for i in range(n_p):
                     self.pipeline_mp(infos[i::n_p])
             else:
                 ps = []
                 for i in range(n_p):
-                    p = multiprocessing.Process(
-                        target=self.pipeline_mp, args=(infos[i::n_p],)
-                    )
+                    p = multiprocessing.Process(target=self.pipeline_mp, args=(infos[i::n_p],))
                     ps.append(p)
                     p.start()
                 for i in range(n_p):

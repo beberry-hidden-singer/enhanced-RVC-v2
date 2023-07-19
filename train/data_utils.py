@@ -3,8 +3,8 @@ import numpy as np
 import torch
 import torch.utils.data
 
-from mel_processing import spectrogram_torch
-from utils import load_wav_to_torch, load_filepaths_and_text
+from train.mel_processing import spectrogram_torch
+from train.utils import load_wav_to_torch, load_filepaths_and_text
 
 
 class TextAudioLoaderMultiNSFsid(torch.utils.data.Dataset):
@@ -93,14 +93,8 @@ class TextAudioLoaderMultiNSFsid(torch.utils.data.Dataset):
     def get_audio(self, filename):
         audio, sampling_rate = load_wav_to_torch(filename)
         if sampling_rate != self.sampling_rate:
-            raise ValueError(
-                "{} SR doesn't match target {} SR".format(
-                    sampling_rate, self.sampling_rate
-                )
-            )
+            raise ValueError("`{}`'s {} SR doesn't match target {} SR".format(filename, sampling_rate, self.sampling_rate))
         audio_norm = audio
-        #        audio_norm = audio / self.max_wav_value
-        #        audio_norm = audio / np.abs(audio).max()
 
         audio_norm = audio_norm.unsqueeze(0)
         spec_filename = filename.replace(".wav", ".spec.pt")
@@ -152,9 +146,7 @@ class TextAudioCollateMultiNSFsid:
         batch: [text_normalized, spec_normalized, wav_normalized]
         """
         # Right zero-pad all one-hot text sequences to max input length
-        _, ids_sorted_decreasing = torch.sort(
-            torch.LongTensor([x[0].size(1) for x in batch]), dim=0, descending=True
-        )
+        _, ids_sorted_decreasing = torch.sort(torch.LongTensor([x[0].size(1) for x in batch]), dim=0, descending=True)
 
         max_spec_len = max([x[0].size(1) for x in batch])
         max_wave_len = max([x[1].size(1) for x in batch])
@@ -167,9 +159,7 @@ class TextAudioCollateMultiNSFsid:
 
         max_phone_len = max([x[2].size(0) for x in batch])
         phone_lengths = torch.LongTensor(len(batch))
-        phone_padded = torch.FloatTensor(
-            len(batch), max_phone_len, batch[0][2].shape[1]
-        )  # (spec, wav, phone, pitch)
+        phone_padded = torch.FloatTensor(len(batch), max_phone_len, batch[0][2].shape[1])  # (spec, wav, phone, pitch)
         pitch_padded = torch.LongTensor(len(batch), max_phone_len)
         pitchf_padded = torch.FloatTensor(len(batch), max_phone_len)
         phone_padded.zero_()
@@ -285,11 +275,7 @@ class TextAudioLoader(torch.utils.data.Dataset):
     def get_audio(self, filename):
         audio, sampling_rate = load_wav_to_torch(filename)
         if sampling_rate != self.sampling_rate:
-            raise ValueError(
-                "{} SR doesn't match target {} SR".format(
-                    sampling_rate, self.sampling_rate
-                )
-            )
+            raise ValueError("`{}`'s {} SR doesn't match target {} SR".format(filename, sampling_rate, self.sampling_rate))
         audio_norm = audio
         #        audio_norm = audio / self.max_wav_value
         #        audio_norm = audio / np.abs(audio).max()
@@ -344,9 +330,7 @@ class TextAudioCollate:
         batch: [text_normalized, spec_normalized, wav_normalized]
         """
         # Right zero-pad all one-hot text sequences to max input length
-        _, ids_sorted_decreasing = torch.sort(
-            torch.LongTensor([x[0].size(1) for x in batch]), dim=0, descending=True
-        )
+        _, ids_sorted_decreasing = torch.sort(torch.LongTensor([x[0].size(1) for x in batch]), dim=0, descending=True)
 
         max_spec_len = max([x[0].size(1) for x in batch])
         max_wave_len = max([x[1].size(1) for x in batch])
@@ -438,9 +422,7 @@ class DistributedBucketSampler(torch.utils.data.distributed.DistributedSampler):
         for i in range(len(buckets)):
             len_bucket = len(buckets[i])
             total_batch_size = self.num_replicas * self.batch_size
-            rem = (
-                total_batch_size - (len_bucket % total_batch_size)
-            ) % total_batch_size
+            rem = (total_batch_size - (len_bucket % total_batch_size)) % total_batch_size
             num_samples_per_bucket.append(len_bucket + rem)
         return buckets, num_samples_per_bucket
 

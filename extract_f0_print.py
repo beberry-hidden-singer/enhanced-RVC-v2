@@ -53,9 +53,7 @@ class FeatureInput(object):
             )
             pad_size = (p_len - len(f0) + 1) // 2
             if pad_size > 0 or p_len - len(f0) - pad_size > 0:
-                f0 = np.pad(
-                    f0, [[pad_size, p_len - len(f0) - pad_size]], mode="constant"
-                )
+                f0 = np.pad(f0, [[pad_size, p_len - len(f0) - pad_size]], mode="constant")
         elif f0_method == "harvest":
             f0, t = pyworld.harvest(
                 x.astype(np.double),
@@ -78,18 +76,13 @@ class FeatureInput(object):
 
     def coarse_f0(self, f0):
         f0_mel = 1127 * np.log(1 + f0 / 700)
-        f0_mel[f0_mel > 0] = (f0_mel[f0_mel > 0] - self.f0_mel_min) * (
-            self.f0_bin - 2
-        ) / (self.f0_mel_max - self.f0_mel_min) + 1
+        f0_mel[f0_mel > 0] = (f0_mel[f0_mel > 0] - self.f0_mel_min) * (self.f0_bin - 2) / (self.f0_mel_max - self.f0_mel_min) + 1
 
         # use 0 or 1
         f0_mel[f0_mel <= 1] = 1
         f0_mel[f0_mel > self.f0_bin - 1] = self.f0_bin - 1
         f0_coarse = np.rint(f0_mel).astype(int)
-        assert f0_coarse.max() <= 255 and f0_coarse.min() >= 1, (
-            f0_coarse.max(),
-            f0_coarse.min(),
-        )
+        assert f0_coarse.max() <= 255 and f0_coarse.min() >= 1, (f0_coarse.max(),f0_coarse.min())
         return f0_coarse
 
     def go(self, paths, f0_method):
@@ -102,23 +95,12 @@ class FeatureInput(object):
                 try:
                     if idx % n == 0:
                         printt("f0ing,now-%s,all-%s,-%s" % (idx, len(paths), inp_path))
-                    if (
-                        os.path.exists(opt_path1 + ".npy") == True
-                        and os.path.exists(opt_path2 + ".npy") == True
-                    ):
+                    if os.path.exists(opt_path1 + ".npy") == True and os.path.exists(opt_path2 + ".npy") == True:
                         continue
                     featur_pit = self.compute_f0(inp_path, f0_method)
-                    np.save(
-                        opt_path2,
-                        featur_pit,
-                        allow_pickle=False,
-                    )  # nsf
+                    np.save(opt_path2, featur_pit, allow_pickle=False,)  # nsf
                     coarse_pit = self.coarse_f0(featur_pit)
-                    np.save(
-                        opt_path1,
-                        coarse_pit,
-                        allow_pickle=False,
-                    )  # ori
+                    np.save(opt_path1, coarse_pit, allow_pickle=False,)  # ori
                 except:
                     printt("f0fail-%s-%s-%s" % (idx, inp_path, traceback.format_exc()))
 
@@ -130,9 +112,9 @@ if __name__ == "__main__":
     printt(sys.argv)
     featureInput = FeatureInput()
     paths = []
-    inp_root = "%s/1_16k_wavs" % (exp_dir)
-    opt_root1 = "%s/2a_f0" % (exp_dir)
-    opt_root2 = "%s/2b-f0nsf" % (exp_dir)
+    inp_root = "%s/1_16k_wavs" % exp_dir
+    opt_root1 = "%s/2a_f0" % exp_dir
+    opt_root2 = "%s/2b-f0nsf" % exp_dir
 
     os.makedirs(opt_root1, exist_ok=True)
     os.makedirs(opt_root2, exist_ok=True)
@@ -146,13 +128,7 @@ if __name__ == "__main__":
 
     ps = []
     for i in range(n_p):
-        p = Process(
-            target=featureInput.go,
-            args=(
-                paths[i::n_p],
-                f0method,
-            ),
-        )
+        p = Process(target=featureInput.go, args=(paths[i::n_p],f0method))
         ps.append(p)
         p.start()
     for i in range(n_p):

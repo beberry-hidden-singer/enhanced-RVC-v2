@@ -1,5 +1,6 @@
 # Adapted from https://github.com/junjun3518/alias-free-torch under the Apache License 2.0
 #   LICENSE is in incl_licenses directory.
+"""from https://github.com/PlayVoice/NSF-BigVGAN/blob/main/model/alias/act.py"""
 
 import torch
 import torch.nn as nn
