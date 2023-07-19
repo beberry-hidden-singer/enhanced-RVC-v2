@@ -402,7 +402,7 @@ def train_and_evaluate(epoch, hps, nets, optims, scaler, loaders, logger, writer
       if mrd:
         loss_msg = f'{loss_msg} | loss_stft={loss_stft:.3f}'
         scalar_dict["loss/g/stft"] = loss_stft
-      logger.info("[Epoch {} ({:.0f}%) | Step {}] {} LR={} ".format(epoch, 100.*batch_idx/len(train_loader), global_step, loss_msg, lr))
+      logger.info("[Epoch {} ({:.0f}%) | Step {}] {} | LR={} ".format(epoch, 100.*batch_idx/len(train_loader), global_step, loss_msg, lr))
 
     global_step += 1
 
