@@ -26,8 +26,8 @@ from lib.models import (
 )
 from sklearn.cluster import MiniBatchKMeans
 
-from my_utils import load_audio
 from train.process_ckpt import change_info, extract_small_model, merge, show_info
+from train.utils import load_audio
 from vc_infer_pipeline import VC
 
 logging.getLogger("numba").setLevel(logging.WARNING)

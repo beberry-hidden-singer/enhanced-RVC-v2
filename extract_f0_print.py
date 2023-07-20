@@ -10,7 +10,7 @@ import pyworld
 import torch
 import torchcrepe
 
-from my_utils import load_audio
+from train.utils import load_audio
 
 logging.getLogger("numba").setLevel(logging.WARNING)
 
@@ -31,7 +31,7 @@ def printt(strr):
 
 
 class FeatureInput(object):
-  def __init__(self, samplerate=16000, hop_size=160):
+  def __init__(self, samplerate=16000, hop_size=160, is_half=False):
     self.fs = samplerate
     self.hop = hop_size
 
@@ -42,6 +42,7 @@ class FeatureInput(object):
     self.f0_mel_max = 1127 * np.log(1 + self.f0_max / 700)
 
     self.rmvpe = None
+    self.is_half = is_half  # TODO: make this customizable
 
   def compute_f0(self, path, f0_method, batch_size_or_hop_length):
     x = load_audio(path, self.fs)
@@ -153,10 +154,10 @@ class FeatureInput(object):
       if self.rmvpe is None:
         from rmvpe import RMVPE
         print("loading rmvpe model")
-
         torch_device = torch.device(f"cuda" if torch.cuda.is_available() else 'cpu' )
-
         self.rmvpe = RMVPE("rmvpe.pt", is_half=self.is_half, device=torch_device)
+
+      f0 = self.rmvpe.infer_from_audio(x, thred=0.03)
 
     else:
       raise ValueError(f'f0 method `{f0_method}` not understood')

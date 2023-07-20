@@ -17,7 +17,7 @@ from slicer2 import Slicer
 import librosa, traceback
 from scipy.io import wavfile
 import multiprocessing
-from my_utils import load_audio
+from train.utils import load_audio
 
 mutex = multiprocessing.Lock()
 f = open("%s/preprocess.log" % exp_dir, "a+")

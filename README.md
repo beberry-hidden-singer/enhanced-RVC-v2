@@ -2,10 +2,13 @@
 ervc-v2
 
 ## Additional Features
-* support for [Multi-Resolution Discriminator](lib/discriminator.py#L192)
-  * can be init with pre-trained weights in [Sovits-5.0](https://github.com/PlayVoice/so-vits-svc-5.0/releases/tag/5.0)
-* support for [Multi-Resolution STFT Loss](./train/losses.py#L153)
-* support for [BigVGAN](lib/models.py#L525)
+* support for [Multi-Resolution Discriminator](lib/discriminator.py#L201)
+  * can be init with pre-trained weights from [Sovits-5.0](https://github.com/PlayVoice/so-vits-svc-5.0/releases/tag/5.0)
+* support for [Multi-Resolution STFT Loss](./train/losses.py#L156)
+* support for [BigVGAN](lib/generator.py#L413)
+  * can be init with pre-trained weights from [NSF-BigVGAN](https://github.com/PlayVoice/NSF-BigVGAN/releases/tag/release)
+* support for `crepe` when extracting f0
+  * implemented but not tested for `mangio-crepe` and `rmvpe`
 
 
 ## Further modifications
