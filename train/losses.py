@@ -119,7 +119,10 @@ class LogSTFTMagnitudeLoss(torch.nn.Module):
 
 
 class STFTLoss(torch.nn.Module):
-  """STFT loss module."""
+  """STFT loss module
+
+  also supports weighted version (https://sewplay.github.io/cv/papers/2021/slt_0000470.pdf)
+  """
 
   def __init__(self, fft_size=1024, shift_size=120, win_length=600, window="hann_window", weight_by_factor=False):
     """Initialize STFT loss module."""

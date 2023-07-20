@@ -1,15 +1,7 @@
 import os
 import shutil
-import sys
-
-now_dir = os.getcwd()
-sys.path.append(now_dir)
-import traceback, pdb
+import traceback
 import warnings
-
-import numpy as np
-import torch
-
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
 os.environ["no_proxy"] = "localhost, 127.0.0.1, ::1"
 import logging
@@ -19,28 +11,29 @@ from subprocess import Popen
 from time import sleep
 
 import faiss
-import ffmpeg
 import gradio as gr
+import numpy as np
 import soundfile as sf
+import torch
 from config import Config
 from fairseq import checkpoint_utils
 from i18n import I18nAuto
-from lib.infer_pack.models import (
+from lib.models import (
     SynthesizerTrnMs256NSFsid,
     SynthesizerTrnMs256NSFsid_nono,
     SynthesizerTrnMs768NSFsid,
     SynthesizerTrnMs768NSFsid_nono,
 )
-from lib.infer_pack.models_onnx import SynthesizerTrnMsNSFsidM
-from infer_uvr5 import _audio_pre_, _audio_pre_new
+from sklearn.cluster import MiniBatchKMeans
+
 from my_utils import load_audio
 from train.process_ckpt import change_info, extract_small_model, merge, show_info
 from vc_infer_pipeline import VC
-from sklearn.cluster import MiniBatchKMeans
 
 logging.getLogger("numba").setLevel(logging.WARNING)
 
 
+now_dir = os.getcwd()
 tmp = os.path.join(now_dir, "TEMP")
 shutil.rmtree(tmp, ignore_errors=True)
 shutil.rmtree("%s/runtime/Lib/site-packages/lib.infer_pack" % (now_dir), ignore_errors=True)
@@ -317,85 +310,7 @@ def vc_multi(
 
 
 def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format0):
-    infos = []
-    try:
-        inp_root = inp_root.strip(" ").strip('"').strip("\n").strip('"').strip(" ")
-        save_root_vocal = (
-            save_root_vocal.strip(" ").strip('"').strip("\n").strip('"').strip(" ")
-        )
-        save_root_ins = (
-            save_root_ins.strip(" ").strip('"').strip("\n").strip('"').strip(" ")
-        )
-        if model_name == "onnx_dereverb_By_FoxJoy":
-            from MDXNet import MDXNetDereverb
-
-            pre_fun = MDXNetDereverb(15)
-        else:
-            func = _audio_pre_ if "DeEcho" not in model_name else _audio_pre_new
-            pre_fun = func(
-                agg=int(agg),
-                model_path=os.path.join(weight_uvr5_root, model_name + ".pth"),
-                device=config.device,
-                is_half=config.is_half,
-            )
-        if inp_root != "":
-            paths = [os.path.join(inp_root, name) for name in os.listdir(inp_root)]
-        else:
-            paths = [path.name for path in paths]
-        for path in paths:
-            inp_path = os.path.join(inp_root, path)
-            need_reformat = 1
-            done = 0
-            try:
-                info = ffmpeg.probe(inp_path, cmd="ffprobe")
-                if (
-                    info["streams"][0]["channels"] == 2
-                    and info["streams"][0]["sample_rate"] == "44100"
-                ):
-                    need_reformat = 0
-                    pre_fun._path_audio_(
-                        inp_path, save_root_ins, save_root_vocal, format0
-                    )
-                    done = 1
-            except:
-                need_reformat = 1
-                traceback.print_exc()
-            if need_reformat == 1:
-                tmp_path = "%s/%s.reformatted.wav" % (tmp, os.path.basename(inp_path))
-                os.system(
-                    "ffmpeg -i %s -vn -acodec pcm_s16le -ac 2 -ar 44100 %s -y"
-                    % (inp_path, tmp_path)
-                )
-                inp_path = tmp_path
-            try:
-                if done == 0:
-                    pre_fun._path_audio_(
-                        inp_path, save_root_ins, save_root_vocal, format0
-                    )
-                infos.append("%s->Success" % (os.path.basename(inp_path)))
-                yield "\n".join(infos)
-            except:
-                infos.append(
-                    "%s->%s" % (os.path.basename(inp_path), traceback.format_exc())
-                )
-                yield "\n".join(infos)
-    except:
-        infos.append(traceback.format_exc())
-        yield "\n".join(infos)
-    finally:
-        try:
-            if model_name == "onnx_dereverb_By_FoxJoy":
-                del pre_fun.pred.model
-                del pre_fun.pred.model_
-            else:
-                del pre_fun.model
-                del pre_fun
-        except:
-            traceback.print_exc()
-        print("clean_empty_cache")
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-    yield "\n".join(infos)
+    pass
 
 
 # 一个选项卡全局只能有一个音色
@@ -434,8 +349,8 @@ def get_vc(sid, to_return_protect0, to_return_protect1):
     person = "%s/%s" % (weight_root, sid)
     print("loading %s" % person)
     cpt = torch.load(person, map_location="cpu")
-    tgt_sr = cpt["config"][-1]
-    cpt["config"][-3] = cpt["weight"]["emb_g.weight"].shape[0]  # n_spk
+    tgt_sr = cpt["config"][-2]
+    cpt["config"][-4] = cpt["weight"]["emb_g.weight"].shape[0]  # n_spk
     if_f0 = cpt.get("f0", 1)
     if if_f0 == 0:
         to_return_protect0 = to_return_protect1 = {
@@ -473,7 +388,7 @@ def get_vc(sid, to_return_protect0, to_return_protect1):
     else:
         net_g = net_g.float()
     vc = VC(tgt_sr, config)
-    n_spk = cpt["config"][-3]
+    n_spk = cpt["config"][-4]
     return (
         {"visible": True, "maximum": n_spk, "__type__": "update"},
         to_return_protect0,
@@ -841,8 +756,8 @@ def click_train(
     with open("%s/filelist.txt" % exp_dir, "w") as f:
         f.write("\n".join(opt))
     print("write filelist done")
+
     # 生成config#无需生成config
-    # cmd = python_cmd + " train_nsf_sim_cache_sid_load_pretrain.py -e mi-test -sr 40k -f0 1 -bs 4 -g 0 -te 10 -se 5 -pg pretrained/f0G40k.pth -pd pretrained/f0D40k.pth -l 1 -c 0"
     print("use gpus:", gpus16)
     if pretrained_G14 == "":
         print("no pretrained Generator")
@@ -1251,48 +1166,7 @@ def change_info_(ckpt_path):
 
 
 def export_onnx(ModelPath, ExportedPath):
-    cpt = torch.load(ModelPath, map_location="cpu")
-    cpt["config"][-3] = cpt["weight"]["emb_g.weight"].shape[0]
-    vec_channels = 256 if cpt.get("version", "v1") == "v1" else 768
-
-    test_phone = torch.rand(1, 200, vec_channels)  # hidden unit
-    test_phone_lengths = torch.tensor([200]).long()  # hidden unit 长度（貌似没啥用）
-    test_pitch = torch.randint(size=(1, 200), low=5, high=255)  # 基频（单位赫兹）
-    test_pitchf = torch.rand(1, 200)  # nsf基频
-    test_ds = torch.LongTensor([0])  # 说话人ID
-    test_rnd = torch.rand(1, 192, 200)  # 噪声（加入随机因子）
-
-    device = "cpu"  # 导出时设备（不影响使用模型）
-
-    net_g = SynthesizerTrnMsNSFsidM(*cpt["config"], is_half=False, version=cpt.get("version", "v1"))  # fp32导出（C++要支持fp16必须手动将内存重新排列所以暂时不用fp16）
-    net_g.load_state_dict(cpt["weight"], strict=False)
-    input_names = ["phone", "phone_lengths", "pitch", "pitchf", "ds", "rnd"]
-    output_names = ["audio",]
-    # net_g.construct_spkmixmap(n_speaker) 多角色混合轨道导出
-    torch.onnx.export(
-        net_g,
-        (
-            test_phone.to(device),
-            test_phone_lengths.to(device),
-            test_pitch.to(device),
-            test_pitchf.to(device),
-            test_ds.to(device),
-            test_rnd.to(device),
-        ),
-        ExportedPath,
-        dynamic_axes={
-            "phone": [1],
-            "pitch": [1],
-            "pitchf": [1],
-            "rnd": [2],
-        },
-        do_constant_folding=False,
-        opset_version=13,
-        verbose=False,
-        input_names=input_names,
-        output_names=output_names,
-    )
-    return "Finished"
+    pass
 
 
 with gr.Blocks() as app:

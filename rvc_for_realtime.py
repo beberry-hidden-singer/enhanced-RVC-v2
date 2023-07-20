@@ -1,6 +1,6 @@
-import faiss, torch, traceback, parselmouth, numpy as np, torchcrepe, torch.nn as nn, pyworld
+import faiss, torch, traceback, parselmouth, numpy as np, torchcrepe, pyworld
 from fairseq import checkpoint_utils
-from lib.infer_pack.models import (
+from lib.models import (
     SynthesizerTrnMs256NSFsid,
     SynthesizerTrnMs256NSFsid_nono,
     SynthesizerTrnMs768NSFsid,

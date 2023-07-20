@@ -281,135 +281,70 @@ def load_filepaths_and_text(filename, split="|"):
 
 
 def get_hparams(init=True):
-  """
-  todo:
-    结尾七人组：
-      保存频率、总epoch                     done
-      bs                                    done
-      pretrainG、pretrainD                  done
-      卡号：os.en["CUDA_VISIBLE_DEVICES"]   done
-      if_latest                             done
-    模型：if_f0                             done
-    采样率：自动选择config                  done
-    是否缓存数据集进GPU:if_cache_data_in_gpu done
-
-    -m:
-      自动决定training_files路径,改掉train_nsf_load_pretrain.py里的hps.data.training_files    done
-    -c不要了
-  """
   parser = argparse.ArgumentParser()
-  # parser.add_argument('-c', '--config', type=str, default="configs/40k.json",help='JSON file for configuration')
-  parser.add_argument(
-    "-se",
-    "--save_every_epoch",
-    type=int,
-    required=True,
-    help="checkpoint save frequency (epoch)",
-  )
-  parser.add_argument(
-    "-te", "--total_epoch", type=int, required=True, help="total_epoch"
-  )
-  parser.add_argument(
-    "-pg", "--pretrainG", type=str, default="", help="Pretrained Discriminator path"
-  )
-  parser.add_argument(
-    "-pd", "--pretrainD", type=str, default="", help="Pretrained Generator path"
-  )
-  parser.add_argument(
-      "-ps", "--pretrainS", type=str, default="", help="Pretrained Sovits-5.0 path"
-  )
-  parser.add_argument("-g", "--gpus", type=str, default="0", help="split by -")
-  parser.add_argument(
-    "-bs", "--batch_size", type=int, required=True, help="batch size"
-  )
-  parser.add_argument(
-    "-e", "--experiment_dir", type=str, required=True, help="experiment dir"
-  )  # -m
-  parser.add_argument(
-    "-sr", "--sample_rate", default='40k', type=str, required=True, help="sample rate, 32k/40k/48k"
-  )
-  parser.add_argument(
-    "-sw",
-    "--save_every_weights",
-    type=str,
-    default="0",
-    help="save the extracted model in weights directory when saving checkpoints",
-  )
-  parser.add_argument("-v", "--version", default='v2', type=str,  help="model version")
-  parser.add_argument(
-    "-f0",
-    "--if_f0",
-    default=1,
-    type=int,
-    help="use f0 as one of the inputs of the model, 1 or 0",
-  )
-  parser.add_argument(
-    "-l",
-    "--if_latest",
-    type=int,
-    required=True,
-    help="if only save the latest G/D pth file, 1 or 0",
-  )
-  parser.add_argument(
-    "-c",
-    "--if_cache_data_in_gpu",
-    type=int,
-    required=True,
-    help="if caching the dataset in GPU memory, 1 or 0",
-  )
 
+  # core
+  parser.add_argument("-e", "--experiment_dir", type=str, required=True, help="experiment dir")
+  parser.add_argument("-sr", "--sample_rate", default='40k', type=str, help="sample rate, 32k/40k/48k")
+  parser.add_argument("-bs", "--batch_size", type=int, default=8, help="batch size")
+  parser.add_argument("-te", "--total_epoch", type=int, default=200, help="total_epoch")
+  parser.add_argument('-se', "--save_every", type=int, default=5, help="checkpoint save frequency (epoch)")
+
+  # pretrained
+  parser.add_argument("-pg", "--pretrainG", type=str, help="Pretrained Discriminator path")
+  parser.add_argument("-pd", "--pretrainD", type=str, help="Pretrained Generator path")
+  parser.add_argument("-ps", "--pretrainS", type=str, help="Pretrained Sovits-5.0 path")
+  parser.add_argument("-pv", "--pretrainV", type=str, help="Pretrained NSF-BigVGAN path")
+
+  # flags
+  parser.add_argument("--latest", action='store_true', help="whether to save the latest G/D pth file",)
+  parser.add_argument("--cache", action='store_true', help="whether to cache the dataset in GPU memory",)
+  parser.add_argument("--save_small_weights", action='store_true', help="save the extracted model in weights directory when saving checkpoints",)
+  parser.add_argument("--no_f0", action='store_true', help="whether to not use f0")
+
+  # custom
   parser.add_argument('--mrd', action='store_true', help='whether to use Multi-Resolution Discriminator')
-  parser.add_argument('--bigv', action='store_true', help='whether to use BigVGAN as Decoder in Generator')
-  parser.add_argument('--weighted_mrstft', action='store_true', help='whether to use weighted MR-STFT Loss')
+  parser.add_argument('--mrstft', action='store_true', help='whether to add Multi-Resolution STFT Loss term')
+  parser.add_argument('--weighted_mrstft', action='store_true', help='whether to use weighted version of Multi-Resolution STFT Loss')
 
   args = parser.parse_args()
-  name = args.experiment_dir
-  experiment_dir = os.path.join("./logs", args.experiment_dir)
+
+  experiment_dir = args.experiment_dir
+  name = os.path.basename(experiment_dir)
+  print("EXP Name:", name)
 
   if not os.path.exists(experiment_dir):
     os.makedirs(experiment_dir)
 
-  if args.version == "v1" or args.sample_rate == "40k":
-    config_path = "configs/%s.json" % args.sample_rate
-  else:
-    config_path = "configs/%s_v2.json" % args.sample_rate
-  config_save_path = os.path.join(experiment_dir, "config.json")
-  if init:
-    with open(config_path, "r") as f:
-      data = f.read()
-    with open(config_save_path, "w") as f:
-      f.write(data)
-  else:
-    with open(config_save_path, "r") as f:
-      data = f.read()
+  config_path = f"configs/{args.sample_rate}.json"
+  with open(config_path, "r") as f:
+    data = f.read()
   config = json.loads(data)
 
   hparams = HParams(**config)
   hparams.model_dir = hparams.experiment_dir = experiment_dir
-  hparams.save_every_epoch = args.save_every_epoch
+  hparams.save_every_epoch = args.save_every
   hparams.name = name
   hparams.total_epoch = args.total_epoch
   hparams.pretrainG = args.pretrainG
   hparams.pretrainD = args.pretrainD
 
-  ### custom args
+  ### custom pre-trained paths
   hparams.pretrainS = args.pretrainS
-  hparams.mrd = args.mrd
-  hparams.bigv = args.bigv
-  hparams.weighted_mrstft = args.weighted_mrstft
+  hparams.pretrainV = args.pretrainV
 
   # default resolutions
-  hparams.resolutions = [(1024, 120, 600), (2048, 240, 1200), (4096, 480, 2400), (512, 50, 240)]
   # hparams.resolutions = [(1024, 120, 600), (2048, 240, 1200), (512, 50, 240)]
+  hparams.resolutions = [(1024, 120, 600), (2048, 240, 1200), (4096, 480, 2400), (512, 50, 240)]
 
-  hparams.version = args.version
-  hparams.gpus = args.gpus
-  hparams.train.batch_size = args.batch_size
+  hparams.version = 'v2'
+  hparams.gpus = '0'  # control this explicitly through CUDA_VISIBLE_DEVICES env
+  hparams.train.crepe_batch_size_or_hop_length = args.batch_size
   hparams.sample_rate = args.sample_rate
-  hparams.if_f0 = args.if_f0
-  hparams.if_latest = args.if_latest
-  hparams.save_every_weights = args.save_every_weights
-  hparams.if_cache_data_in_gpu = args.if_cache_data_in_gpu
+  hparams.if_f0 = not args.no_f0
+  hparams.if_latest = args.latest
+  hparams.save_every_weights = args.save_small_weights
+  hparams.if_cache_data_in_gpu = args.cache
   hparams.data.training_files = "%s/filelist.txt" % experiment_dir
   return hparams
 

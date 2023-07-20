@@ -14,7 +14,7 @@
     "warmup_epochs": 0,
     "c_mel": 45,
     "c_kl": 1.0,
-    "c_stft": 0.5
+    "c_stft": 2.5
   },
   "data": {
     "max_wav_value": 32768.0,
@@ -42,6 +42,10 @@
     "upsample_kernel_sizes": [16,16,4,4],
     "use_spectral_norm": false,
     "gin_channels": 256,
-    "spk_embed_dim": 109
+    "spk_embed_dim": 109,
+    "bigv": false,
+    "mrd": false,
+    "mrstft": true,
+    "weighted_mrstft": true
   }
 }
