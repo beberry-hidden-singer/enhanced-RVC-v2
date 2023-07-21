@@ -6,7 +6,7 @@
     "learning_rate": 1e-4,
     "betas": [0.8, 0.99],
     "eps": 1e-9,
-    "batch_size": 4,
+    "batch_size": 8,
     "fp16_run": true,
     "lr_decay": 0.999875,
     "segment_size": 17280,
@@ -14,7 +14,7 @@
     "warmup_epochs": 0,
     "c_mel": 45,
     "c_kl": 1.0,
-    "c_stft": 2.5
+    "c_stft": 0.5
   },
   "data": {
     "max_wav_value": 32768.0,
@@ -45,7 +45,7 @@
     "spk_embed_dim": 109,
     "bigv": false,
     "mrd": false,
-    "mrstft": true,
-    "weighted_mrstft": true
+    "mrstft": false,
+    "weighted_mrstft": false
   }
 }

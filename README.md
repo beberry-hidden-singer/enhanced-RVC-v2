@@ -7,9 +7,7 @@ ervc-v2
 * support for [Multi-Resolution STFT Loss](./train/losses.py#L156)
 * support for [BigVGAN](lib/generator.py#L413)
   * can be init with pre-trained weights from [NSF-BigVGAN](https://github.com/PlayVoice/NSF-BigVGAN/releases/tag/release)
-* support for `crepe` when extracting f0
-  * implemented but not tested for `mangio-crepe` and `rmvpe`
-
+* option to use `crepe`, `mangio-crepe` and `rmvpe` when extracting f0
 
 ## Further modifications
 * only compatible with v2

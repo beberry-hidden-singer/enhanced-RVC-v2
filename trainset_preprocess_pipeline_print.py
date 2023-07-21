@@ -2,7 +2,11 @@
 by karljeon44
 """
 import sys, os, multiprocessing
+import logging
 from scipy import signal
+
+numba_logger = logging.getLogger('numba')
+numba_logger.setLevel(logging.WARNING)
 
 now_dir = os.getcwd()
 sys.path.append(now_dir)
@@ -18,6 +22,7 @@ import librosa, traceback
 from scipy.io import wavfile
 import multiprocessing
 from train.utils import load_audio
+
 
 mutex = multiprocessing.Lock()
 f = open("%s/preprocess.log" % exp_dir, "a+")
