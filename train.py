@@ -64,7 +64,7 @@ def main():
     train_dataset = TextAudioLoader(hps.data.training_files, hps.data)
   train_sampler = DistributedBucketSampler(
     train_dataset,
-    hps.train.crepe_batch_size_or_hop_length,
+    hps.train.batch_size,
     # [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1200,1400],  # 16s
     [100, 200, 300, 400, 500, 600, 700, 800, 900],  # 16s
     num_replicas=1,

@@ -297,7 +297,7 @@ def load_filepaths_and_text(filename, split="|"):
   return filepaths_and_text
 
 
-def get_hparams(init=True):
+def get_hparams():
   parser = argparse.ArgumentParser()
 
   # core
@@ -320,6 +320,11 @@ def get_hparams(init=True):
   parser.add_argument("--no_f0", action='store_true', help="whether to not use f0")
 
   # custom
+  parser.add_argument('--seed', type=int, default=1234, help='training seed')
+  parser.add_argument('--c_mel', type=float, default=45., help='multiplier for mel loss')
+  parser.add_argument('--c_kl', type=float, default=1.0, help='multiplier for KL Div loss')
+  parser.add_argument('--c_stft', type=float, default=0.5, help='multiplier for MR-STFT loss')
+  parser.add_argument('--bigv', action='store_true', help='whether to use BigVGAN Generator')
   parser.add_argument('--mrd', action='store_true', help='whether to use Multi-Resolution Discriminator')
   parser.add_argument('--mrstft', action='store_true', help='whether to add Multi-Resolution STFT Loss term')
   parser.add_argument('--weighted_mrstft', action='store_true', help='whether to use weighted version of Multi-Resolution STFT Loss')
@@ -327,14 +332,11 @@ def get_hparams(init=True):
   args = parser.parse_args()
 
   experiment_dir = args.experiment_dir
+  os.makedirs(experiment_dir, exist_ok=True)
   name = os.path.basename(experiment_dir)
   print("EXP Name:", name)
 
-  if not os.path.exists(experiment_dir):
-    os.makedirs(experiment_dir)
-
-  config_path = f"configs/{args.sample_rate}.json"
-  with open(config_path, "r") as f:
+  with open(f"configs/{args.sample_rate}.json", "r") as f:
     data = f.read()
   config = json.loads(data)
 
@@ -354,9 +356,19 @@ def get_hparams(init=True):
   # hparams.resolutions = [(1024, 120, 600), (2048, 240, 1200), (512, 50, 240)]
   hparams.resolutions = [(1024, 120, 600), (2048, 240, 1200), (4096, 480, 2400), (512, 50, 240)]
 
+  # overwrite config with custom params
+  hparams.train.seed = args.seed
+  hparams.train.c_mel = args.c_mel
+  hparams.train.c_kl = args.c_kl
+  hparams.train.c_stft = args.c_stft
+  hparams.model.bigv = args.bigv
+  hparams.model.mrd = args.mrd
+  hparams.model.mrstft = args.mrstft
+  hparams.model.weighted_mrstft = args.weighted_mrstft
+
   hparams.version = 'v2'
   hparams.gpus = '0'  # control this explicitly through CUDA_VISIBLE_DEVICES env
-  hparams.train.crepe_batch_size_or_hop_length = args.batch_size
+  hparams.train.batch_size = args.batch_size
   hparams.sample_rate = args.sample_rate
   hparams.if_f0 = not args.no_f0
   hparams.if_latest = args.latest

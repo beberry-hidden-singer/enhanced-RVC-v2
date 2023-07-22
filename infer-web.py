@@ -515,7 +515,11 @@ with gr.Blocks() as app:
             ],
             [vc_output1, vc_output2],
           )
-
+        sid0.change(
+          fn=get_vc,
+          inputs=[sid0, protect0, protect0],
+          outputs=[spk_item, protect0, protect0],
+        )
       with gr.Group():
         gr.Markdown("Timbre Fusion")
         with gr.Row():

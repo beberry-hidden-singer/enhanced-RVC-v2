@@ -43,9 +43,9 @@
     "use_spectral_norm": false,
     "gin_channels": 256,
     "spk_embed_dim": 109,
-    "bigv": true,
-    "mrd": true,
-    "mrstft": true,
+    "bigv": false,
+    "mrd": false,
+    "mrstft": false,
     "weighted_mrstft": false
   }
 }

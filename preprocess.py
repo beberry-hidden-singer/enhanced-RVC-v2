@@ -32,7 +32,7 @@ exp_dir = args.exp_dir
 n_p = args.num_proc
 sr = args.sample_rate
 
-
+os.makedirs(exp_dir, exist_ok=True)
 mutex = multiprocessing.Lock()
 f = open("%s/preprocess.log" % exp_dir, "a+")
 
@@ -118,9 +118,9 @@ class PreProcess:
             idx1 += 1
             break
         self.norm_write(tmp_audio, idx0, idx1, spk_id)
-      println("%s->Suc." % path)
+      println("`%s` -> Suc." % path)
     except:
-      println("%s->%s" % (path, traceback.format_exc()))
+      println("`%s` -> %s" % (path, traceback.format_exc()))
 
   def pipeline_mp(self, infos):
     for path, idx0 in infos:
@@ -147,7 +147,6 @@ class PreProcess:
 def preprocess_trainset(inp_root, sr, n_p, exp_dir):
   pp = PreProcess(sr, exp_dir)
   println("start preprocess")
-  println(sys.argv)
   pp.pipeline_mp_inp_dir(inp_root, n_p)
   println("end preprocess")
 

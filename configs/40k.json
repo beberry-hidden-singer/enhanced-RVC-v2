@@ -45,7 +45,7 @@
     "spk_embed_dim": 109,
     "bigv": false,
     "mrd": false,
-    "mrstft": true,
+    "mrstft": false,
     "weighted_mrstft": false
   }
 }

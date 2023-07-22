@@ -46,6 +46,6 @@
     "bigv": false,
     "mrd": false,
     "mrstft": false,
-    "weighted_mrstft": true
+    "weighted_mrstft": false
   }
 }
