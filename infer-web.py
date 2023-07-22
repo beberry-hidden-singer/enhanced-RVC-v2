@@ -23,7 +23,7 @@ from lib.models import (
 )
 from lib.vc_infer_pipeline import VC
 from utils.config import Config
-from utils.misc_utils import load_audio
+from utils.misc_utils import load_audio, HUBERT_FPATH
 from utils.process_ckpt import merge
 
 logging.getLogger("numba").setLevel(logging.WARNING)
@@ -113,7 +113,7 @@ def load_hubert():
   global hubert_model
   models, _, _ = checkpoint_utils.load_model_ensemble_and_task(
     # ["hubert_base.pt"],
-    ["../pretrain/hubert_base.pt"],
+    [HUBERT_FPATH],
     suffix="",
   )
   hubert_model = models[0]

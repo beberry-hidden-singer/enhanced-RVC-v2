@@ -13,10 +13,13 @@ import numpy as np
 import torch
 from scipy.io.wavfile import read
 
-MATPLOTLIB_FLAG = False
-
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 logger = logging
+
+### constants
+MATPLOTLIB_FLAG = False
+HUBERT_FPATH = '../pretrain/hubert_base.pt'
+RMVPE_FPATH = '../pretrain/rmvpe.pt'
 
 
 def load_audio(file, sr):

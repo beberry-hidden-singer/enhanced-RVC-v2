@@ -11,6 +11,8 @@ import torch
 import torch.nn.functional as F
 from fairseq import checkpoint_utils
 
+from utils.misc_utils import HUBERT_FPATH
+
 os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
 os.environ["PYTORCH_MPS_HIGH_WATERMARK_RATIO"] = "0.0"
 
@@ -36,9 +38,6 @@ def printt(strr):
   f.write("%s\n" % strr)
   f.flush()
 
-
-model_path = "../pretrain/hubert_base.pt"
-
 printt(exp_dir)
 wavPath = "%s/1_16k_wavs" % exp_dir
 outPath = "%s/3_feature768" % exp_dir
@@ -61,12 +60,12 @@ def readwave(wav_path, normalize=False):
 
 
 # HuBERT model
-printt("load model(s) from {}".format(model_path))
+printt("load model(s) from {}".format(HUBERT_FPATH))
 # if hubert model is exist
-if os.access(model_path, os.F_OK) == False:
+if os.access(HUBERT_FPATH, os.F_OK) == False:
   printt("Error: Extracting is shut down because %s does not exist, you may download it from https://huggingface.co/lj1995/VoiceConversionWebUI/tree/main" % model_path)
   exit(0)
-models, saved_cfg, task = checkpoint_utils.load_model_ensemble_and_task([model_path], suffix="",)
+models, saved_cfg, task = checkpoint_utils.load_model_ensemble_and_task([HUBERT_FPATH], suffix="",)
 model = models[0]
 model = model.to(device)
 printt("move model to %s" % device)
