@@ -1,9 +1,8 @@
 import math
+
 import torch
 from torch import nn
 from torch.nn import functional as F
-
-from torch.nn import Conv1d
 from torch.nn.utils import weight_norm, remove_weight_norm
 
 from lib import commons
@@ -224,7 +223,7 @@ class ResBlock1(torch.nn.Module):
         self.convs1 = nn.ModuleList(
             [
                 weight_norm(
-                    Conv1d(
+                    nn.Conv1d(
                         channels,
                         channels,
                         kernel_size,
@@ -234,7 +233,7 @@ class ResBlock1(torch.nn.Module):
                     )
                 ),
                 weight_norm(
-                    Conv1d(
+                    nn.Conv1d(
                         channels,
                         channels,
                         kernel_size,
@@ -244,7 +243,7 @@ class ResBlock1(torch.nn.Module):
                     )
                 ),
                 weight_norm(
-                    Conv1d(
+                    nn.Conv1d(
                         channels,
                         channels,
                         kernel_size,
@@ -260,7 +259,7 @@ class ResBlock1(torch.nn.Module):
         self.convs2 = nn.ModuleList(
             [
                 weight_norm(
-                    Conv1d(
+                    nn.Conv1d(
                         channels,
                         channels,
                         kernel_size,
@@ -270,7 +269,7 @@ class ResBlock1(torch.nn.Module):
                     )
                 ),
                 weight_norm(
-                    Conv1d(
+                    nn.Conv1d(
                         channels,
                         channels,
                         kernel_size,
@@ -280,7 +279,7 @@ class ResBlock1(torch.nn.Module):
                     )
                 ),
                 weight_norm(
-                    Conv1d(
+                    nn.Conv1d(
                         channels,
                         channels,
                         kernel_size,
@@ -321,7 +320,7 @@ class ResBlock2(torch.nn.Module):
         self.convs = nn.ModuleList(
             [
                 weight_norm(
-                    Conv1d(
+                    nn.Conv1d(
                         channels,
                         channels,
                         kernel_size,
@@ -331,7 +330,7 @@ class ResBlock2(torch.nn.Module):
                     )
                 ),
                 weight_norm(
-                    Conv1d(
+                    nn.Conv1d(
                         channels,
                         channels,
                         kernel_size,

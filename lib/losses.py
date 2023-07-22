@@ -2,7 +2,7 @@
 with additional modifications from https://github.com/Nitin4525/SpeechEnhancement/blob/master/loss.py for weighted MR-STFT
 by karljeon44"""
 import torch
-from torch.nn import functional as F
+import torch.nn.functional as F
 
 
 def feature_loss(fmap_r, fmap_g, normalize=False):

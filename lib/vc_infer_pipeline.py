@@ -1,4 +1,4 @@
-import numpy as np, parselmouth, torch, pdb, sys, os
+import numpy as np, parselmouth, torch, sys
 from time import time as ttime
 import torch.nn.functional as F
 import pyworld, os, traceback, faiss, librosa, torchcrepe
@@ -128,9 +128,9 @@ class VC(object):
             f0 = f0[0].cpu().numpy()
         elif f0_method == "rmvpe":
             if not hasattr(self, "model_rmvpe"):
-                from rmvpe import RMVPE
+                from lib.rmvpe import RMVPE
                 print("loading rmvpe model")
-                self.model_rmvpe = RMVPE("rmvpe.pt", is_half=self.is_half, device=self.device)
+                self.model_rmvpe = RMVPE("../pretrain/rmvpe.pt", is_half=self.is_half, device=self.device)
             f0 = self.model_rmvpe.infer_from_audio(x, thred=0.03)
         f0 *= pow(2, f0_up_key / 12)
         # with open("test.txt","w")as f:f.write("\n".join([str(i)for i in f0.tolist()]))

@@ -6,7 +6,6 @@ import glob
 import json
 import logging
 import os
-import subprocess
 import sys
 
 import ffmpeg
@@ -309,10 +308,10 @@ def get_hparams(init=True):
   parser.add_argument('-se', "--save_every", type=int, default=5, help="checkpoint save frequency (epoch)")
 
   # pretrained
-  parser.add_argument("-pg", "--pretrainG", type=str, help="Pretrained Discriminator path")
-  parser.add_argument("-pd", "--pretrainD", type=str, help="Pretrained Generator path")
-  parser.add_argument("-ps", "--pretrainS", type=str, help="Pretrained Sovits-5.0 path")
-  parser.add_argument("-pv", "--pretrainV", type=str, help="Pretrained NSF-BigVGAN path")
+  parser.add_argument("-pg", "--pretrainG", type=str, default="", help="Pretrained Discriminator path")
+  parser.add_argument("-pd", "--pretrainD", type=str, default="", help="Pretrained Generator path")
+  parser.add_argument("-ps", "--pretrainS", type=str, default="", help="Pretrained Sovits-5.0 path")
+  parser.add_argument("-pv", "--pretrainV", type=str, default="", help="Pretrained NSF-BigVGAN path")
 
   # flags
   parser.add_argument("--latest", action='store_true', help="whether to save the latest G/D pth file",)

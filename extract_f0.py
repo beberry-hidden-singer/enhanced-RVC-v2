@@ -1,3 +1,7 @@
+"""modified from https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI/blob/main/extract_f0_print.py
+by karljeon44
+"""
+import argparse
 import logging
 import os
 import sys
@@ -10,19 +14,30 @@ import pyworld
 import torch
 import torchcrepe
 
-from train.utils import load_audio
+from utils.misc_utils import load_audio
 
 logging.getLogger("numba").setLevel(logging.WARNING)
 
 
-exp_dir = sys.argv[1]
+argparser = argparse.ArgumentParser()
+argparser.add_argument('exp_dir', help='experiment dirpath')
+argparser.add_argument('-n', '--num_proc', type=int, default=4, help='number of processes to use')
+argparser.add_argument('-f', '--f0_method', type=str.lower, default='rmvpe', help='which f0 extraction algorithm to use',
+                       choices=['pm', 'harvest', 'dio', 'crepe', 'mangio', 'mangio-crepe', 'rmvpe'])
+argparser.add_argument('--crepe_batch_size', type=int, default=512, help='batch size when using CREPE')
+argparser.add_argument('--mangio_hop_length', type=int, default=128, help='hop length when using MANGIO-CREPE')
+
+args= argparser.parse_args()
+exp_dir = args.exp_dir
 f = open("%s/extract_f0_feature.log" % exp_dir, "a+")
-n_p = int(sys.argv[2])
-f0method = sys.argv[3]
-try:
-  crepe_batch_size_or_hop_length = int(sys.argv[4])
-except IndexError:
-  crepe_batch_size_or_hop_length = 512
+n_p = args.num_proc
+f0method = args.f0_method
+
+crepe_batch_size_or_hop_length = 0
+if f0method == 'crepe':
+  crepe_batch_size_or_hop_length = args.crepe_batch_size
+elif 'mangio' in f0method:
+  crepe_batch_size_or_hop_length = args.mangio_hop_length
 
 def printt(strr):
   print(strr)
@@ -152,10 +167,10 @@ class FeatureInput(object):
 
     elif f0_method == 'rmvpe':
       if self.rmvpe is None:
-        from rmvpe import RMVPE
+        from lib.rmvpe import RMVPE
         print("loading rmvpe model")
         torch_device = torch.device(f"cuda" if torch.cuda.is_available() else 'cpu' )
-        self.rmvpe = RMVPE("rmvpe.pt", is_half=self.is_half, device=torch_device)
+        self.rmvpe = RMVPE("../pretrain/rmvpe.pt", is_half=self.is_half, device=torch_device)
 
       f0 = self.rmvpe.infer_from_audio(x, thred=0.03)
 

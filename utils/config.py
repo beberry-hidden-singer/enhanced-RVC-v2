@@ -1,7 +1,8 @@
 import argparse
 import sys
-import torch
 from multiprocessing import cpu_count
+
+import torch
 
 
 def use_fp32_config():

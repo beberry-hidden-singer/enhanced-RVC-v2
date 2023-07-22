@@ -11,8 +11,19 @@ ervc-v2
 
 ## Further modifications
 * only compatible with v2
+* webUI no longer supports training & vocal extraction
+  * only inference + timbre fusion
 * Distributed Training no longer supported
-* cannot be trained on webUI
+* removed i18n library with English as the sole display language on webUI
 * additional scripts to:
   * train index for each log dir
-  * write pre-training filelist that can handle multiple speakers
+  * write pre-filelist that can handle multiple speakers
+    * in this case speaker id must show at the end of filename preceded by underscore
+
+## NOTE
+* currently fpaths to `rmvpe.pt`  and `hubert_base.pt` are hardcoded as `../pretrain/{}.pt`:
+  * hubert in [infer-web.py](infer-web.py#L116)
+  * hubert in [extract_features.py](extract_features.py#L34)
+  * rmvpe in [vc_infer_pipeline.py](lib/vc_infer_pipeline.py#L133)
+  * rmvpe in [extract_f0.py](extract_f0.py#L158)
+

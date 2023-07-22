@@ -1,12 +1,8 @@
-import torch, traceback, os, pdb, sys
-
-now_dir = os.getcwd()
-sys.path.append(now_dir)
+import os
+import traceback
 from collections import OrderedDict
-from i18n import I18nAuto
 
-i18n = I18nAuto()
-
+import torch
 
 def savee(ckpt, sr, if_f0, name, epoch, version, hps):
     try:
@@ -183,7 +179,7 @@ def extract_small_model(path, name, sr, if_f0, info, version):
         opt["info"] = info
         opt["version"] = version
         opt["sr"] = sr
-        opt["f0"] = int(if_f0)
+        opt["f0"] =  1 if if_f0 == "Yes" else 0
         torch.save(opt, "weights/%s.pth" % name)
         return "Success."
     except:
@@ -204,7 +200,6 @@ def change_info(path, info, name):
 
 def merge(path1, path2, alpha1, sr, f0, info, name, version):
     try:
-
         def extract(ckpt):
             a = ckpt["model"]
             opt = OrderedDict()
@@ -251,7 +246,7 @@ def merge(path1, path2, alpha1, sr, f0, info, name, version):
         elif(sr=="32k"):opt["config"] = [513, 32, 192, 192, 768, 2, 6, 3, 0, "1", [3, 7, 11], [[1, 3, 5], [1, 3, 5], [1, 3, 5]], [10, 4, 2, 2, 2], 512, [16, 16, 4, 4,4], 109, 256, 32000]
         """
         opt["sr"] = sr
-        opt["f0"] = 1 if f0 == i18n("是") else 0
+        opt["f0"] = 1 if f0 == "Yes" else 0
         opt["version"] = version
         opt["info"] = info
         torch.save(opt, "weights/%s.pth" % name)

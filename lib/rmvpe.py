@@ -238,17 +238,16 @@ class E2E(nn.Module):
             en_out_channels,
         )
         self.cnn = nn.Conv2d(en_out_channels, 3, (3, 3), padding=(1, 1))
-        if n_gru:
-            self.fc = nn.Sequential(
-                BiGRU(3 * 128, 256, n_gru),
-                nn.Linear(512, 360),
-                nn.Dropout(0.25),
-                nn.Sigmoid(),
-            )
-        else:
-            self.fc = nn.Sequential(
-                nn.Linear(3 * N_MELS, N_CLASS), nn.Dropout(0.25), nn.Sigmoid()
-            )
+        self.fc = nn.Sequential(
+            BiGRU(3 * 128, 256, n_gru),
+            nn.Linear(512, 360),
+            nn.Dropout(0.25),
+            nn.Sigmoid(),
+        )
+        # else:
+        #     self.fc = nn.Sequential(
+        #         nn.Linear(3 * N_MELS, N_CLASS), nn.Dropout(0.25), nn.Sigmoid()
+        #     )
 
     def forward(self, mel):
         mel = mel.transpose(-1, -2).unsqueeze(1)

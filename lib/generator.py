@@ -431,8 +431,8 @@ class GeneratorBigV(torch.nn.Module):
     self.num_upsamples = len(upsample_rates)
 
     # pre conv
-    self.conv_pre = Conv1d(initial_channel, upsample_initial_channel, 7, 1, padding=3)
-    # self.conv_pre = weight_norm(Conv1d(initial_channel, upsample_initial_channel, 7, 1, padding=3))
+    # self.conv_pre = Conv1d(initial_channel, upsample_initial_channel, 7, 1, padding=3)
+    self.conv_pre = weight_norm(Conv1d(initial_channel, upsample_initial_channel, 7, 1, padding=3))
 
     # nsf
     self.f0_upsamp = torch.nn.Upsample(scale_factor=np.prod(upsample_rates))
@@ -489,9 +489,9 @@ class GeneratorBigV(torch.nn.Module):
       self.cond = nn.Conv1d(gin_channels, upsample_initial_channel, 1)
 
   def forward(self, x, f0, g=None):
-    # Perturbation
-    if self.training:
-      x = x + torch.randn_like(x)
+    # # Perturbation
+    # if self.training:
+    #   x = x + torch.randn_like(x)
     x = self.conv_pre(x)
     x = x * torch.tanh(F.softplus(x))
 
@@ -536,43 +536,3 @@ class GeneratorBigV(torch.nn.Module):
     # don't remove weight norm while validation in training loop
     if inference:
       self.remove_weight_norm()
-
-  def pitch2source(self, f0):
-    f0 = f0[:, None]
-    f0 = self.f0_upsamp(f0).transpose(1, 2)  # [1,len,1]
-    har_source = self.m_source(f0)
-    har_source = har_source.transpose(1, 2)  # [1,1,len]
-    return har_source
-
-  def source2wav(self, audio):
-    MAX_WAV_VALUE = 32768.0
-    audio = audio.squeeze()
-    audio = MAX_WAV_VALUE * audio
-    audio = audio.clamp(min=-MAX_WAV_VALUE, max=MAX_WAV_VALUE - 1)
-    audio = audio.short()
-    return audio.cpu().detach().numpy()
-
-  def inference(self, spk, x, har_source):
-    x = self.conv_pre(x)
-    x = x * torch.tanh(F.softplus(x))
-
-    for i in range(self.num_upsamples):
-      # upsampling
-      x = self.ups[i](x)
-      # nsf
-      x_source = self.noise_convs[i](har_source)
-      x = x + x_source
-      # AMP blocks
-      xs = None
-      for j in range(self.num_kernels):
-        if xs is None:
-          xs = self.resblocks[i * self.num_kernels + j](x)
-        else:
-          xs += self.resblocks[i * self.num_kernels + j](x)
-      x = xs / self.num_kernels
-
-    # post conv
-    x = self.activation_post(x)
-    x = self.conv_post(x)
-    x = torch.tanh(x)
-    return x

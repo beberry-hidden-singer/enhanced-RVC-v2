@@ -16,18 +16,18 @@ from torch.utils.tensorboard import SummaryWriter
 
 from lib import commons
 from lib.discriminator import Discriminator, MultiPeriodDiscriminatorV2
+from lib.losses import generator_loss, discriminator_loss, feature_loss, kl_loss, MultiResolutionSTFTLoss
+from lib.mel_processing import mel_spectrogram_torch, spec_to_mel_torch
 from lib.models import SynthesizerTrnMs768NSFsid, SynthesizerTrnMs768NSFsid_nono
-from train import utils
-from train.data_utils import (
+from utils import misc_utils
+from utils.data_utils import (
   TextAudioLoaderMultiNSFsid,
   TextAudioLoader,
   TextAudioCollateMultiNSFsid,
   TextAudioCollate,
   DistributedBucketSampler,
 )
-from train.losses import generator_loss, discriminator_loss, feature_loss, kl_loss, MultiResolutionSTFTLoss
-from train.mel_processing import mel_spectrogram_torch, spec_to_mel_torch
-from train.process_ckpt import savee
+from utils.process_ckpt import savee
 
 GLOBAL_STEP = 0
 
@@ -48,10 +48,10 @@ class EpochRecorder:
 def main():
   global GLOBAL_STEP
 
-  hps = utils.get_hparams()
+  hps = misc_utils.get_hparams()
   assert hps.version == 'v2', "ervc-v2 only compatible with V2"
 
-  logger = utils.get_logger(hps.model_dir)
+  logger = misc_utils.get_logger(hps.model_dir)
   logger.info(hps)
   writer = SummaryWriter(log_dir=hps.model_dir)
   writer_eval = SummaryWriter(log_dir=os.path.join(hps.model_dir, "eval"))
@@ -121,9 +121,9 @@ def main():
   optim_d = torch.optim.AdamW(net_d.parameters(), hps.train.learning_rate, betas=hps.train.betas, eps=hps.train.eps,)
 
   try:  # 如果能加载自动resume
-    _, _, _, epoch_str = utils.load_checkpoint(utils.latest_checkpoint_path(hps.model_dir, "D_*.pth"), net_d, optim_d)
+    _, _, _, epoch_str = misc_utils.load_checkpoint(misc_utils.latest_checkpoint_path(hps.model_dir, "D_*.pth"), net_d, optim_d)
     # _, _, _, epoch_str = utils.load_checkpoint(utils.latest_checkpoint_path(hps.model_dir, "G_*.pth"), net_g, optim_g,load_opt=0)
-    _, _, _, epoch_str = utils.load_checkpoint(utils.latest_checkpoint_path(hps.model_dir, "G_*.pth"), net_g, optim_g)
+    _, _, _, epoch_str = misc_utils.load_checkpoint(misc_utils.latest_checkpoint_path(hps.model_dir, "G_*.pth"), net_g, optim_g)
     logger.info("loaded from latest checkpoints")
     GLOBAL_STEP = (epoch_str - 1) * len(train_loader)
   except:  # 如果首次不能加载，加载pretrain
@@ -386,11 +386,11 @@ def train_and_evaluate(epoch, hps, nets, optims, scaler, loaders, logger, writer
         "loss/g/gen": loss_gen,
       }
       image_dict = {
-        "slice/mel_org": utils.plot_spectrogram_to_numpy(y_mel[0].data.cpu().numpy()),
-        "slice/mel_gen": utils.plot_spectrogram_to_numpy(y_hat_mel[0].data.cpu().numpy()),
-        "all/mel": utils.plot_spectrogram_to_numpy(mel[0].data.cpu().numpy()),
+        "slice/mel_org": misc_utils.plot_spectrogram_to_numpy(y_mel[0].data.cpu().numpy()),
+        "slice/mel_gen": misc_utils.plot_spectrogram_to_numpy(y_hat_mel[0].data.cpu().numpy()),
+        "all/mel": misc_utils.plot_spectrogram_to_numpy(mel[0].data.cpu().numpy()),
       }
-      utils.summarize(writer=writer, global_step=GLOBAL_STEP, images=image_dict, scalars=scalar_dict)
+      misc_utils.summarize(writer=writer, global_step=GLOBAL_STEP, images=image_dict, scalars=scalar_dict)
 
       loss_msg = f"loss_disc={loss_disc:.3f} | loss_gen={loss_gen:.3f} | loss_fm={loss_fm:.3f} | loss_mel={loss_mel:.3f} | loss_kl={loss_kl:.3f}"
       if hps.model.mrstft:
@@ -402,11 +402,11 @@ def train_and_evaluate(epoch, hps, nets, optims, scaler, loaders, logger, writer
 
   if epoch % hps.save_every_epoch == 0:
     if hps.if_latest == 0:
-      utils.save_checkpoint(net_g, optim_g, hps.train.learning_rate, epoch, os.path.join(hps.model_dir, "G_{}.pth".format(GLOBAL_STEP)))
-      utils.save_checkpoint(net_d, optim_d, hps.train.learning_rate, epoch, os.path.join(hps.model_dir, "D_{}.pth".format(GLOBAL_STEP)))
+      misc_utils.save_checkpoint(net_g, optim_g, hps.train.learning_rate, epoch, os.path.join(hps.model_dir, "G_{}.pth".format(GLOBAL_STEP)))
+      misc_utils.save_checkpoint(net_d, optim_d, hps.train.learning_rate, epoch, os.path.join(hps.model_dir, "D_{}.pth".format(GLOBAL_STEP)))
     else:
-      utils.save_checkpoint(net_g,optim_g,hps.train.learning_rate,epoch,os.path.join(hps.model_dir, "G_{}.pth".format(2333333)))
-      utils.save_checkpoint(net_d,optim_d,hps.train.learning_rate,epoch,os.path.join(hps.model_dir, "D_{}.pth".format(2333333)))
+      misc_utils.save_checkpoint(net_g,optim_g,hps.train.learning_rate,epoch,os.path.join(hps.model_dir, "G_{}.pth".format(2333333)))
+      misc_utils.save_checkpoint(net_d,optim_d,hps.train.learning_rate,epoch,os.path.join(hps.model_dir, "D_{}.pth".format(2333333)))
 
     if hps.save_every_weights:
       ckpt = net_g.state_dict()

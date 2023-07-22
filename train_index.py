@@ -14,7 +14,7 @@ from sklearn.cluster import MiniBatchKMeans
 logger = logging.getLogger(__name__)
 
 
-def train_index(log_dir):
+def train_index(log_dir, kmeans=False):
   os.makedirs(log_dir, exist_ok=True)
   feature_dir = f"{log_dir}/3_feature768"
   assert os.path.exists(feature_dir)
@@ -32,7 +32,7 @@ def train_index(log_dir):
   big_npy_idx = np.arange(big_npy.shape[0])
   np.random.shuffle(big_npy_idx)
   big_npy = big_npy[big_npy_idx]
-  if big_npy.shape[0] > 2e5:
+  if big_npy.shape[0] > 2e5 and kmeans:
     print("Trying doing kmeans %s shape to 10k centers." % big_npy.shape[0])
     big_npy = (
       MiniBatchKMeans(
@@ -45,7 +45,6 @@ def train_index(log_dir):
       .fit(big_npy)
       .cluster_centers_
     )
-
 
   np.save("%s/total_fea.npy" % log_dir, big_npy)
   n_ivf = min(int(16 * np.sqrt(big_npy.shape[0])), big_npy.shape[0] // 39)
@@ -71,6 +70,7 @@ def train_index(log_dir):
 if __name__ == '__main__':
   argparser = argparse.ArgumentParser()
   argparser.add_argument('log_dir', help='dirpath to current log')
+  argparser.add_argument('--kmeans', action='store_true', help='whether to apply K-Means if feature matrix is too big')
   args = argparser.parse_args()
 
-  train_index(args.log_dir)
+  train_index(args.log_dir, kmeans=args.kmeans)
