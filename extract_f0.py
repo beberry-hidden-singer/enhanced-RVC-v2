@@ -4,7 +4,6 @@ by karljeon44
 import argparse
 import logging
 import os
-import sys
 import traceback
 from multiprocessing import Process
 
@@ -14,7 +13,7 @@ import pyworld
 import torch
 import torchcrepe
 
-from utils.misc_utils import load_audio, RMVPE_FPATH
+from lib.utils.misc_utils import load_audio, RMVPE_FPATH
 
 logging.getLogger("numba").setLevel(logging.WARNING)
 
@@ -35,8 +34,10 @@ f0method = args.f0_method
 crepe_batch_size_or_hop_length = 0
 if f0method == 'crepe':
   crepe_batch_size_or_hop_length = args.crepe_batch_size
+  print("CREPE Batch Size:", crepe_batch_size_or_hop_length)
 elif 'mangio' in f0method:
   crepe_batch_size_or_hop_length = args.mangio_hop_length
+  print("Mangio-CREPE Hop Length:", crepe_batch_size_or_hop_length)
 
 
 class FeatureInput(object):
@@ -161,7 +162,7 @@ class FeatureInput(object):
 
     elif f0_method == 'rmvpe':
       if self.rmvpe is None:
-        from lib.rmvpe import RMVPE
+        from lib.model.rmvpe import RMVPE
         print("loading rmvpe model")
         torch_device = torch.device(f"cuda" if torch.cuda.is_available() else 'cpu' )
         self.rmvpe = RMVPE(RMVPE_FPATH, is_half=self.is_half, device=torch_device)

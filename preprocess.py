@@ -4,7 +4,6 @@ by karljeon44
 import argparse
 import logging
 import multiprocessing
-import sys
 
 import librosa
 import numpy as np
@@ -13,8 +12,8 @@ import traceback
 from scipy import signal
 from scipy.io import wavfile
 
-from utils.misc_utils import load_audio
-from utils.slicer2 import Slicer
+from lib.utils.misc_utils import load_audio
+from lib.utils.slicer2 import Slicer
 
 numba_logger = logging.getLogger('numba')
 numba_logger.setLevel(logging.WARNING)

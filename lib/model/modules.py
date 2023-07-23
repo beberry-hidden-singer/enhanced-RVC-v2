@@ -5,9 +5,9 @@ from torch import nn
 from torch.nn import functional as F
 from torch.nn.utils import weight_norm, remove_weight_norm
 
-from lib import commons
-from lib.commons import init_weights, get_padding
-from lib.transforms import piecewise_rational_quadratic_transform
+from lib.model import commons
+from lib.model.commons import init_weights, get_padding
+from lib.model.transforms import piecewise_rational_quadratic_transform
 
 
 LRELU_SLOPE = 0.1

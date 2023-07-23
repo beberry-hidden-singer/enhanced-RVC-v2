@@ -14,20 +14,20 @@ from torch.cuda.amp import autocast, GradScaler
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
-from lib import commons
-from lib.discriminator import Discriminator, MultiPeriodDiscriminatorV2
-from lib.losses import generator_loss, discriminator_loss, feature_loss, kl_loss, MultiResolutionSTFTLoss
-from lib.mel_processing import mel_spectrogram_torch, spec_to_mel_torch
-from lib.models import SynthesizerTrnMs768NSFsid, SynthesizerTrnMs768NSFsid_nono
-from utils import misc_utils
-from utils.data_utils import (
+from lib.model import commons
+from lib.model.discriminator import Discriminator, MultiPeriodDiscriminatorV2
+from lib.model.losses import generator_loss, discriminator_loss, feature_loss, kl_loss, MultiResolutionSTFTLoss
+from lib.model.mel_processing import mel_spectrogram_torch, spec_to_mel_torch
+from lib.model.models import SynthesizerTrnMs768NSFsid, SynthesizerTrnMs768NSFsid_nono
+from lib.utils import misc_utils
+from lib.utils.data_utils import (
   TextAudioLoaderMultiNSFsid,
   TextAudioLoader,
   TextAudioCollateMultiNSFsid,
   TextAudioCollate,
   DistributedBucketSampler,
 )
-from utils.process_ckpt import savee
+from lib.utils.process_ckpt import savee
 
 GLOBAL_STEP = 0
 
@@ -405,8 +405,8 @@ def train_and_evaluate(epoch, hps, nets, optims, scaler, loaders, logger, writer
       misc_utils.save_checkpoint(net_g, optim_g, hps.train.learning_rate, epoch, os.path.join(hps.model_dir, "G_{}.pth".format(GLOBAL_STEP)))
       misc_utils.save_checkpoint(net_d, optim_d, hps.train.learning_rate, epoch, os.path.join(hps.model_dir, "D_{}.pth".format(GLOBAL_STEP)))
     else:
-      misc_utils.save_checkpoint(net_g,optim_g,hps.train.learning_rate,epoch,os.path.join(hps.model_dir, "G_{}.pth".format(2333333)))
-      misc_utils.save_checkpoint(net_d,optim_d,hps.train.learning_rate,epoch,os.path.join(hps.model_dir, "D_{}.pth".format(2333333)))
+      misc_utils.save_checkpoint(net_g, optim_g, hps.train.learning_rate, epoch, os.path.join(hps.model_dir, "G_{}.pth".format(2333333)))
+      misc_utils.save_checkpoint(net_d, optim_d, hps.train.learning_rate, epoch, os.path.join(hps.model_dir, "D_{}.pth".format(2333333)))
 
     if hps.save_every_weights:
       ckpt = net_g.state_dict()

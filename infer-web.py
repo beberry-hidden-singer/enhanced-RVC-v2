@@ -11,20 +11,19 @@ os.environ["no_proxy"] = "localhost, 127.0.0.1, ::1"
 
 import gradio as gr
 import numpy as np
-import soundfile as sf
 import torch
 from fairseq import checkpoint_utils
 
-from lib.models import (
+from lib.model.models import (
   SynthesizerTrnMs256NSFsid,
   SynthesizerTrnMs256NSFsid_nono,
   SynthesizerTrnMs768NSFsid,
   SynthesizerTrnMs768NSFsid_nono,
 )
-from lib.vc_infer_pipeline import VC
-from utils.config import Config
-from utils.misc_utils import load_audio, HUBERT_FPATH
-from utils.process_ckpt import merge
+from lib.model.vc_infer_pipeline import VC
+from lib.utils.config import Config
+from lib.utils.misc_utils import load_audio, HUBERT_FPATH
+from lib.utils.process_ckpt import merge
 
 logging.getLogger("numba").setLevel(logging.WARNING)
 
@@ -145,7 +144,6 @@ def vc_single(
         f0_file,
         f0_method,
         file_index,
-        file_index2,
         # file_big_npy,
         index_rate,
         filter_radius,
@@ -166,21 +164,6 @@ def vc_single(
     if not hubert_model:
       load_hubert()
     if_f0 = cpt.get("f0", 1)
-    file_index = (
-      (
-        file_index.strip(" ")
-        .strip('"')
-        .strip("\n")
-        .strip('"')
-        .strip(" ")
-        .replace("trained", "added")
-      )
-      if file_index != ""
-      else file_index2
-    )  # 防止小白写错，自动帮他替换掉
-    # file_big_npy = (
-    #     file_big_npy.strip(" ").strip('"').strip("\n").strip('"').strip(" ")
-    # )
     audio_opt = vc.pipeline(
       hubert_model,
       net_g,
@@ -204,99 +187,12 @@ def vc_single(
     )
     if tgt_sr != resample_sr >= 16000:
       tgt_sr = resample_sr
-    index_info = (
-      "Using index:%s." % file_index
-      if os.path.exists(file_index)
-      else "Index not used."
-    )
-    return "Success.\n %s\nTime:\n npy:%ss, f0:%ss, infer:%ss" % (
-      index_info,
-      times[0],
-      times[1],
-      times[2],
-    ), (tgt_sr, audio_opt)
+    index_info = "Using index:%s." % file_index if os.path.exists(file_index) else "Index not used."
+    return "Success.\n %s\nTime:\n npy:%ss, f0:%ss, infer:%ss" % (index_info, times[0], times[1], times[2],), (tgt_sr, audio_opt)
   except:
     info = traceback.format_exc()
     print(info)
     return info, (None, None)
-
-
-def vc_multi(
-        sid,
-        dir_path,
-        opt_root,
-        paths,
-        f0_up_key,
-        f0_method,
-        file_index,
-        file_index2,
-        # file_big_npy,
-        index_rate,
-        filter_radius,
-        resample_sr,
-        rms_mix_rate,
-        protect,
-        format1,
-):
-  try:
-    dir_path = (
-      dir_path.strip(" ").strip('"').strip("\n").strip('"').strip(" ")
-    )  # 防止小白拷路径头尾带了空格和"和回车
-    opt_root = opt_root.strip(" ").strip('"').strip("\n").strip('"').strip(" ")
-    os.makedirs(opt_root, exist_ok=True)
-    try:
-      if dir_path != "":
-        paths = [os.path.join(dir_path, name) for name in os.listdir(dir_path)]
-      else:
-        paths = [path.name for path in paths]
-    except:
-      traceback.print_exc()
-      paths = [path.name for path in paths]
-    infos = []
-    for path in paths:
-      info, opt = vc_single(
-        sid,
-        path,
-        f0_up_key,
-        None,
-        f0_method,
-        file_index,
-        file_index2,
-        # file_big_npy,
-        index_rate,
-        filter_radius,
-        resample_sr,
-        rms_mix_rate,
-        protect,
-      )
-      if "Success" in info:
-        try:
-          tgt_sr, audio_opt = opt
-          if format1 in ["wav", "flac"]:
-            sf.write(
-              "%s/%s.%s" % (opt_root, os.path.basename(path), format1),
-              audio_opt,
-              tgt_sr,
-              )
-          else:
-            path = "%s/%s.wav" % (opt_root, os.path.basename(path))
-            sf.write(
-              path,
-              audio_opt,
-              tgt_sr,
-            )
-            if os.path.exists(path):
-              os.system(
-                "ffmpeg -i %s -vn %s -q:a 2 -y"
-                % (path, path[:-4] + ".%s" % format1)
-              )
-        except:
-          info += traceback.format_exc()
-      infos.append("%s->%s" % (os.path.basename(path), info))
-      yield "\n".join(infos)
-    yield "\n".join(infos)
-  except:
-    yield traceback.format_exc()
 
 
 
@@ -403,10 +299,9 @@ def clean():
   return {"value": "", "__type__": "update"}
 
 
-
 with gr.Blocks() as app:
   gr.Markdown(
-    value="This software is open source under the MIT license. The author does not have any control over the software. Users who use the software and distribute the sounds exported by the software are solely responsible. <br>If you do not agree with this clause, you cannot use or reference any codes and files within the software package. <b>LICENSE.txt<b> for details."
+    value="This software is open source under the MIT license. The author does not have any control over the software. Users who use the software and distribute the sounds exported by the software are solely responsible. <br>If you do not agree with this clause, you cannot use or reference any codes and files within the software package. <b>LICENSE<b> for details."
   )
   with gr.Tabs():
     with gr.TabItem("Inference"):
@@ -416,10 +311,10 @@ with gr.Blocks() as app:
         clean_button = gr.Button("Unload voice to save GPU Memory", variant="primary")
         spk_item = gr.Slider(
           minimum=0,
-          maximum=2333,
+          maximum=109,
           step=1,
           label="Singer/Speaker ID",
-          value=0,
+          value=6,
           visible=False,
           interactive=True,
         )
@@ -428,15 +323,15 @@ with gr.Blocks() as app:
         gr.Markdown(value="about +/- 12 key for gender conversion")
         with gr.Row():
           with gr.Column():
-            vc_transform0 = gr.Number(label="Pitch Transpose in integer Semi-tones", value=0)
+            vc_transform0 = gr.Number(label="Pitch Translation in int Semi-tones", value=0)
             input_audio0 = gr.Textbox(
               label="Path to Input Audio",
               value="../../boram_vocals.wav",
             )
             f0method0 = gr.Radio(
               label="Pitch Extraction Algorithm",
-              choices=["pm", "harvest", "crepe", "rmvpe"],
-              value="rmvpe",
+              choices=["pm", "harvest", "crepe", "mangio-crepe", "rmvpe"],
+              value="crepe",
               interactive=True,
             )
             filter_radius0 = gr.Slider(
@@ -448,13 +343,16 @@ with gr.Blocks() as app:
               interactive=True,
             )
           with gr.Column():
-            file_index1 = gr.Textbox(
-              label="Path to the feature index file. Leave blank to use the selected result from the dropdown",
-              value="",
+            resample_sr0 = gr.Slider(
+              minimum=0,
+              maximum=48000,
+              label="Target Sample Rate (0 if no resampling)",
+              value=0,
+              step=1,
               interactive=True,
             )
             file_index2 = gr.Dropdown(
-              label="Auto-detect index path and select from the dropdown",
+              label="Auto-detected Index List",
               choices=sorted(index_paths),
               interactive=True,
             )
@@ -468,14 +366,6 @@ with gr.Blocks() as app:
               interactive=True,
             )
           with gr.Column():
-            resample_sr0 = gr.Slider(
-              minimum=0,
-              maximum=48000,
-              label="Resample",
-              value=0,
-              step=1,
-              interactive=True,
-            )
             rms_mix_rate0 = gr.Slider(
               minimum=0,
               maximum=1,
@@ -504,9 +394,7 @@ with gr.Blocks() as app:
               vc_transform0,
               f0_file,
               f0method0,
-              file_index1,
               file_index2,
-              # file_big_npy1,
               index_rate1,
               filter_radius0,
               resample_sr0,

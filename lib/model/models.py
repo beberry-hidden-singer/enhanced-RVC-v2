@@ -9,9 +9,9 @@ from torch.nn import Conv1d, ConvTranspose1d
 from torch.nn import functional as F
 from torch.nn.utils import weight_norm, remove_weight_norm, spectral_norm
 
-from lib import attentions, commons, modules
-from lib.commons import init_weights, get_padding
-from lib.generator import GeneratorBigV
+from lib.model import commons, modules, attentions
+from lib.model.commons import init_weights, get_padding
+from lib.model.generator import GeneratorBigV
 
 
 class TextEncoder256(nn.Module):

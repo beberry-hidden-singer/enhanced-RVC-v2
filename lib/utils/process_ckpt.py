@@ -56,7 +56,7 @@ def show_info(path):
         return traceback.format_exc()
 
 
-def extract_small_model(path, name, sr, if_f0, info, version):
+def extract_small_model(path, name, sr, if_f0, info, bigv=False):
     try:
         ckpt = torch.load(path, map_location="cpu")
         if "model" in ckpt:
@@ -87,99 +87,65 @@ def extract_small_model(path, name, sr, if_f0, info, version):
                 109,
                 256,
                 40000,
+                bigv
             ]
         elif sr == "48k":
-            if version == "v1":
-                opt["config"] = [
-                    1025,
-                    32,
-                    192,
-                    192,
-                    768,
-                    2,
-                    6,
-                    3,
-                    0,
-                    "1",
-                    [3, 7, 11],
-                    [[1, 3, 5], [1, 3, 5], [1, 3, 5]],
-                    [10, 6, 2, 2, 2],
-                    512,
-                    [16, 16, 4, 4, 4],
-                    109,
-                    256,
-                    48000,
-                ]
-            else:
-                opt["config"] = [
-                    1025,
-                    32,
-                    192,
-                    192,
-                    768,
-                    2,
-                    6,
-                    3,
-                    0,
-                    "1",
-                    [3, 7, 11],
-                    [[1, 3, 5], [1, 3, 5], [1, 3, 5]],
-                    [12, 10, 2, 2],
-                    512,
-                    [24, 20, 4, 4],
-                    109,
-                    256,
-                    48000,
+            opt["config"] = [
+                1025,
+                32,
+                192,
+                192,
+                768,
+                2,
+                6,
+                3,
+                0,
+                "1",
+                [3, 7, 11],
+                [[1, 3, 5], [1, 3, 5], [1, 3, 5]],
+                [12, 10, 2, 2],
+                512,
+                [24, 20, 4, 4],
+                109,
+                256,
+                48000,
+                bigv
                 ]
         elif sr == "32k":
-            if version == "v1":
-                opt["config"] = [
-                    513,
-                    32,
-                    192,
-                    192,
-                    768,
-                    2,
-                    6,
-                    3,
-                    0,
-                    "1",
-                    [3, 7, 11],
-                    [[1, 3, 5], [1, 3, 5], [1, 3, 5]],
-                    [10, 4, 2, 2, 2],
-                    512,
-                    [16, 16, 4, 4, 4],
-                    109,
-                    256,
-                    32000,
-                ]
-            else:
-                opt["config"] = [
-                    513,
-                    32,
-                    192,
-                    192,
-                    768,
-                    2,
-                    6,
-                    3,
-                    0,
-                    "1",
-                    [3, 7, 11],
-                    [[1, 3, 5], [1, 3, 5], [1, 3, 5]],
-                    [10, 8, 2, 2],
-                    512,
-                    [20, 16, 4, 4],
-                    109,
-                    256,
-                    32000,
-                ]
+            opt["config"] = [
+                513,
+                32,
+                192,
+                192,
+                768,
+                2,
+                6,
+                3,
+                0,
+                "1",
+                [3, 7, 11],
+                [[1, 3, 5], [1, 3, 5], [1, 3, 5]],
+                [10, 8, 2, 2],
+                512,
+                [20, 16, 4, 4],
+                109,
+                256,
+                32000,
+                bigv
+            ]
         if info == "":
-            info = "Extracted model."
+            info = "Extracted model"
+        if bigv:
+            info = f'{info} with BigV'
         opt["info"] = info
-        opt["version"] = version
+        opt["version"] = 'v2'
         opt["sr"] = sr
-        opt["f0"] =  1 if if_f0 == "Yes" else 0
+        opt["f0"] =  1 if if_f0 else 0
+        if name.endswith('.pth'):
+            name = name[:-4]
+        elif name.endswith('.pt'):
+            name = name[:-3]
+
         torch.save(opt, "weights/%s.pth" % name)
         return "Success."
     except:

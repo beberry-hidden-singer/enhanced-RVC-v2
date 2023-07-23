@@ -11,7 +11,7 @@ import torch
 import torch.nn.functional as F
 from fairseq import checkpoint_utils
 
-from utils.misc_utils import HUBERT_FPATH
+from lib.utils.misc_utils import HUBERT_FPATH
 
 os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
 os.environ["PYTORCH_MPS_HIGH_WATERMARK_RATIO"] = "0.0"

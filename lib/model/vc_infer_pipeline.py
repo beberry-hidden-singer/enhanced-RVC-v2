@@ -14,7 +14,7 @@ import torch.nn.functional as F
 import torchcrepe
 from scipy import signal
 
-from utils.misc_utils import RMVPE_FPATH
+from lib.utils.misc_utils import RMVPE_FPATH
 
 now_dir = os.getcwd()
 sys.path.append(now_dir)
@@ -160,10 +160,10 @@ class VC(object):
       # Pitch prediction for pitch extraction
       pitch = torchcrepe.predict(
         audio,
-        self.fs,
+        self.sr,
         128,
-        self.f0_min,
-        self.f0_max,
+        f0_min,
+        f0_max,
         "full",
         batch_size=128 * 2,
         device=torch_device,
@@ -182,7 +182,7 @@ class VC(object):
 
     elif f0_method == "rmvpe":
       if not hasattr(self, "model_rmvpe"):
-        from lib.rmvpe import RMVPE
+        from lib.model.rmvpe import RMVPE
         print("loading rmvpe model")
         self.model_rmvpe = RMVPE(RMVPE_FPATH, is_half=self.is_half, device=self.device)
       f0 = self.model_rmvpe.infer_from_audio(x, thred=0.03)

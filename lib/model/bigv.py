@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 from torch.nn import Conv1d
 from torch.nn.utils import weight_norm, remove_weight_norm
-from lib.alias.act import SnakeAlias
+from lib.model.alias import SnakeAlias
 
 
 def init_weights(m, mean=0.0, std=0.01):
