@@ -34,14 +34,10 @@ sr = args.sample_rate
 
 os.makedirs(exp_dir, exist_ok=True)
 mutex = multiprocessing.Lock()
-f = open("%s/preprocess.log" % exp_dir, "a+")
-
 
 def println(strr):
   mutex.acquire()
   print(strr)
-  f.write("%s\n" % strr)
-  f.flush()
   mutex.release()
 
 

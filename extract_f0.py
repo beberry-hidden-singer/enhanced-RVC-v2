@@ -29,7 +29,6 @@ argparser.add_argument('--mangio_hop_length', type=int, default=128, help='hop l
 
 args= argparser.parse_args()
 exp_dir = args.exp_dir
-f = open("%s/extract_f0_feature.log" % exp_dir, "a+")
 n_p = args.num_proc
 f0method = args.f0_method
 
@@ -38,11 +37,6 @@ if f0method == 'crepe':
   crepe_batch_size_or_hop_length = args.crepe_batch_size
 elif 'mangio' in f0method:
   crepe_batch_size_or_hop_length = args.mangio_hop_length
-
-def printt(strr):
-  print(strr)
-  f.write("%s\n" % strr)
-  f.flush()
 
 
 class FeatureInput(object):
@@ -192,14 +186,14 @@ class FeatureInput(object):
 
   def go(self, paths, f0_method, batch_size_or_hop_length):
     if len(paths) == 0:
-      printt("no-f0-todo")
+      print("no-f0-todo")
     else:
-      printt("todo-f0-%s" % len(paths))
+      print("todo-f0-%s" % len(paths))
       n = max(len(paths) // 5, 1)  # 每个进程最多打印5条
       for idx, (inp_path, opt_path1, opt_path2) in enumerate(paths):
         try:
           if idx % n == 0:
-            printt("f0ing,now-%s,all-%s,-%s" % (idx, len(paths), inp_path))
+            print("f0ing,now-%s,all-%s,-%s" % (idx, len(paths), inp_path))
           if os.path.exists(opt_path1 + ".npy") == True and os.path.exists(opt_path2 + ".npy") == True:
             continue
           featur_pit = self.compute_f0(inp_path, f0_method, batch_size_or_hop_length)
@@ -207,14 +201,13 @@ class FeatureInput(object):
           coarse_pit = self.coarse_f0(featur_pit)
           np.save(opt_path1, coarse_pit, allow_pickle=False,)  # ori
         except:
-          printt("f0fail-%s-%s-%s" % (idx, inp_path, traceback.format_exc()))
+          print("f0fail-%s-%s-%s" % (idx, inp_path, traceback.format_exc()))
 
 
 if __name__ == "__main__":
   # exp_dir=r"E:\codes\py39\dataset\mi-test"
   # n_p=16
   # f = open("%s/log_extract_f0.log"%exp_dir, "w")
-  printt(sys.argv)
   featureInput = FeatureInput()
   paths = []
   inp_root = "%s/1_16k_wavs" % exp_dir
