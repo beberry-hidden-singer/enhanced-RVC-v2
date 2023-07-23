@@ -6,7 +6,7 @@ import argparse
 import logging
 import os
 
-from lib.utils.process_ckpt import extract_small_model
+from utils.process_ckpt import extract_small_model
 
 logger = logging.getLogger(__name__)
 

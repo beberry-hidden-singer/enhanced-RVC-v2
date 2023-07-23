@@ -16,7 +16,7 @@ import torch.nn.functional as F
 import torchcrepe
 from scipy import signal
 
-from lib.utils.misc_utils import RMVPE_FPATH
+from utils.misc_utils import RMVPE_FPATH
 
 bh, ah = signal.butter(N=5, Wn=48, btype="high", fs=16000)
 input_audio_path2wav = {}

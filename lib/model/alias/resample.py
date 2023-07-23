@@ -4,8 +4,9 @@
 
 import torch.nn as nn
 from torch.nn import functional as F
-from lib.model.alias.filter import LowPassFilter1d
-from lib.model.alias.filter import kaiser_sinc_filter1d
+
+from model.alias.filter import LowPassFilter1d
+from model.alias.filter import kaiser_sinc_filter1d
 
 
 class UpSample1d(nn.Module):

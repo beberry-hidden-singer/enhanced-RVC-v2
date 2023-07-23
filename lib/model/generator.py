@@ -14,7 +14,7 @@ from torch.nn import ConvTranspose1d
 from torch.nn.utils import weight_norm
 from torch.nn.utils import remove_weight_norm
 
-from lib.model.bigv import init_weights, AMPBlock, SnakeAlias
+from model.bigv import init_weights, AMPBlock, SnakeAlias
 
 
 class PulseGen(torch.nn.Module):

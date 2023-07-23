@@ -12,8 +12,8 @@ import traceback
 from scipy import signal
 from scipy.io import wavfile
 
-from lib.utils.misc_utils import load_audio
-from lib.utils.slicer2 import Slicer
+from utils.misc_utils import load_audio
+from utils.slicer2 import Slicer
 
 numba_logger = logging.getLogger('numba')
 numba_logger.setLevel(logging.WARNING)

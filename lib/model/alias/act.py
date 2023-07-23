@@ -8,7 +8,8 @@ import torch.nn.functional as F
 
 from torch import sin, pow
 from torch.nn import Parameter
-from lib.model.alias.resample import UpSample1d, DownSample1d
+
+from model.alias.resample import UpSample1d, DownSample1d
 
 
 class Activation1d(nn.Module):

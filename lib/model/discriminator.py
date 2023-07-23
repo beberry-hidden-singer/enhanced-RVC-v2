@@ -9,8 +9,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.utils import weight_norm, spectral_norm
 
-from lib.model import modules
-from lib.model.commons import get_padding
+from model import modules
+from model.commons import get_padding
 
 logger = logging.getLogger(__name__)
 

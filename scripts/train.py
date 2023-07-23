@@ -14,20 +14,20 @@ from torch.cuda.amp import autocast, GradScaler
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
-from lib.model import commons
-from lib.model.discriminator import Discriminator, MultiPeriodDiscriminatorV2
-from lib.model.losses import generator_loss, discriminator_loss, feature_loss, kl_loss, MultiResolutionSTFTLoss
-from lib.model.mel_processing import mel_spectrogram_torch, spec_to_mel_torch
-from lib.model.models import SynthesizerTrnMs768NSFsid, SynthesizerTrnMs768NSFsid_nono
-from lib.utils import misc_utils
-from lib.utils.data_utils import (
+from model import commons
+from model.discriminator import Discriminator, MultiPeriodDiscriminatorV2
+from model.losses import generator_loss, discriminator_loss, feature_loss, kl_loss, MultiResolutionSTFTLoss
+from model.mel_processing import mel_spectrogram_torch, spec_to_mel_torch
+from model.models import SynthesizerTrnMs768NSFsid, SynthesizerTrnMs768NSFsid_nono
+from utils import misc_utils
+from utils.data_utils import (
   TextAudioLoaderMultiNSFsid,
   TextAudioLoader,
   TextAudioCollateMultiNSFsid,
   TextAudioCollate,
   DistributedBucketSampler,
 )
-from lib.utils.process_ckpt import savee
+from utils.process_ckpt import savee
 
 GLOBAL_STEP = 0
 

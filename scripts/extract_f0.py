@@ -13,7 +13,7 @@ import pyworld
 import torch
 import torchcrepe
 
-from lib.utils.misc_utils import load_audio, RMVPE_FPATH
+from utils.misc_utils import load_audio, RMVPE_FPATH
 
 logging.getLogger("numba").setLevel(logging.WARNING)
 
@@ -162,7 +162,7 @@ class FeatureInput(object):
 
     elif f0_method == 'rmvpe':
       if self.rmvpe is None:
-        from lib.model.rmvpe import RMVPE
+        from model.rmvpe import RMVPE
         print("loading rmvpe model")
         torch_device = torch.device(f"cuda" if torch.cuda.is_available() else 'cpu' )
         self.rmvpe = RMVPE(RMVPE_FPATH, is_half=self.is_half, device=torch_device)

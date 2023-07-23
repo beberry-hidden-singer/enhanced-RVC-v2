@@ -3,8 +3,8 @@ import numpy as np
 import torch
 import torch.utils.data
 
-from lib.model.mel_processing import spectrogram_torch
-from lib.utils.misc_utils import load_wav_to_torch, load_filepaths_and_text
+from model.mel_processing import spectrogram_torch
+from utils.misc_utils import load_wav_to_torch, load_filepaths_and_text
 
 
 class TextAudioLoaderMultiNSFsid(torch.utils.data.Dataset):
