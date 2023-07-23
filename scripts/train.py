@@ -390,12 +390,13 @@ def train_and_evaluate(epoch, hps, nets, optims, scaler, loaders, logger, writer
         "slice/mel_gen": misc_utils.plot_spectrogram_to_numpy(y_hat_mel[0].data.cpu().numpy()),
         "all/mel": misc_utils.plot_spectrogram_to_numpy(mel[0].data.cpu().numpy()),
       }
-      misc_utils.summarize(writer=writer, global_step=GLOBAL_STEP, images=image_dict, scalars=scalar_dict)
 
       loss_msg = f"loss_disc={loss_disc:.3f} | loss_gen={loss_gen:.3f} | loss_fm={loss_fm:.3f} | loss_mel={loss_mel:.3f} | loss_kl={loss_kl:.3f}"
       if hps.model.mrstft:
         loss_msg = f'{loss_msg} | loss_stft={loss_stft:.3f}'
         scalar_dict["loss/g/stft"] = loss_stft
+
+      misc_utils.summarize(writer=writer, global_step=GLOBAL_STEP, images=image_dict, scalars=scalar_dict)
       logger.info("[Epoch {} ({:.0f}%) | Step {}] {} | LR={} ".format(epoch, 100. * batch_idx / len(train_loader), GLOBAL_STEP, loss_msg, lr))
 
     GLOBAL_STEP += 1
