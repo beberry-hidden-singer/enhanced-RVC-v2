@@ -23,13 +23,20 @@ argparser = argparse.ArgumentParser()
 argparser.add_argument('input_dir', help='input dataset dirpath')
 argparser.add_argument('exp_dir', help='output experiment dirpath')
 argparser.add_argument('-n', '--num_proc', type=int, default=4, help='number of processes to use')
-argparser.add_argument('-sr', '--sample_rate', type=int, default=48000, help='target sample rate')
+argparser.add_argument('-sr', '--sample_rate', type=str.lower, default='48k', help='target sample rate')
 
 args= argparser.parse_args()
 inp_root = args.input_dir
 exp_dir = args.exp_dir
 n_p = args.num_proc
-sr = args.sample_rate
+if args.sample_rate == '48k':
+  sr = 48000
+elif args.sample_rate == '40k':
+  sr = 40000
+elif args.sample_rate == '32k':
+  sr = 32000
+else:
+  raise ValueError(f'Given sample rate (`{args.sample_rate}`) not understood')
 
 os.makedirs(exp_dir, exist_ok=True)
 mutex = multiprocessing.Lock()

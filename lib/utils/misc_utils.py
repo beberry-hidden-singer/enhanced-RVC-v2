@@ -202,7 +202,7 @@ def get_hparams():
 
   # core
   parser.add_argument("-e", "--experiment_dir", type=str, required=True, help="experiment dir")
-  parser.add_argument("-sr", "--sample_rate", default='40k', type=str, help="sample rate, 32k/40k/48k")
+  parser.add_argument("-sr", "--sample_rate", default='40k', type=str.lower, help="sample rate, 32k/40k/48k")
   parser.add_argument("-bs", "--batch_size", type=int, default=8, help="batch size")
   parser.add_argument("-te", "--total_epoch", type=int, default=200, help="total_epoch")
   parser.add_argument('-se', "--save_every", type=int, default=5, help="checkpoint save frequency (epoch)")

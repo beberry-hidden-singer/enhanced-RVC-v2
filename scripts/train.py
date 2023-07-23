@@ -152,7 +152,7 @@ def main():
       logger.info("loading pretrained Multi-Resolution Discriminator from `%s`" % hps.pretrainS)
       sd_dict = torch.load(hps.pretrainS, map_location='cpu')['model_d']
       mrd_dict = {f'{k.replace("MRD.", "")}':v for k,v in sd_dict.items() if k.startswith('MRD')}
-      net_d.MRD.load_state_dict(mrd_dict)
+      print(net_d.MRD.load_state_dict(mrd_dict))
 
     if hps.model.bigv and hps.sample_rate == '32k' and hps.pretrainV != "":
       logger.info("loading pretrained BigVGAN from `%s`" % hps.pretrainV)

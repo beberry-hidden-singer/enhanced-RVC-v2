@@ -10,7 +10,7 @@ from random import shuffle
 logger = logging.getLogger(__name__)
 
 
-def main(exp_dir, sample_rate, infer_spk_id=False):
+def main(exp_dir, sample_rate, spk_id=0, infer_spk_id=False):
   print("EXP Dir:", exp_dir)
 
   gt_wavs_dir = "%s/0_gt_wavs" % exp_dir
@@ -31,10 +31,14 @@ def main(exp_dir, sample_rate, infer_spk_id=False):
   speaker_mapping = dict()
   # speaker_mapping_count =
 
+  spk_id = str(spk_id)
+  if not infer_spk_id:
+    print("Using Speaker ID:", spk_id)
+
   opt = []
   unique_speaker_ids = []
   for name in names:
-    speaker_id = name.split('_')[-1] if infer_spk_id else '0'
+    speaker_id = name.split('_')[-1] if infer_spk_id else spk_id
     # if spk_id_src not in speaker_mapping:
     #   speaker_mapping[spk_id_src] = len(speaker_mapping)
     # spk_id = speaker_mapping[spk_id_src]
@@ -80,8 +84,9 @@ def main(exp_dir, sample_rate, infer_spk_id=False):
 if __name__ == '__main__':
   argparser = argparse.ArgumentParser()
   argparser.add_argument('log_dir', help='dirpath to current log')
-  argparser.add_argument('-sr', '--sample_rate', default='40k', help='target sample rate')
+  argparser.add_argument('-sr', '--sample_rate', type=str.lower, default='40k', help='target sample rate')
+  argparser.add_argument('--spk_id', default=0, type=int, help='single speaker id to use (disabled if `infer_spk_id` is specified')
   argparser.add_argument('--infer_spk_id', action='store_true', help='whether to infer speaker ids from filenames')
   args = argparser.parse_args()
 
-  main(args.log_dir, args.sample_rate, infer_spk_id=args.infer_spk_id)
+  main(args.log_dir, args.sample_rate, spk_id=args.spk_id, infer_spk_id=args.infer_spk_id)

@@ -1,5 +1,7 @@
+"""modified from https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI/blob/main/vc_infer_pipeline.py
+by karljeon44
+"""
 import os
-import sys
 import traceback
 from functools import lru_cache
 from time import time as ttime
@@ -16,11 +18,7 @@ from scipy import signal
 
 from lib.utils.misc_utils import RMVPE_FPATH
 
-now_dir = os.getcwd()
-sys.path.append(now_dir)
-
 bh, ah = signal.butter(N=5, Wn=48, btype="high", fs=16000)
-
 input_audio_path2wav = {}
 
 
@@ -40,23 +38,14 @@ def cache_harvest_f0(input_audio_path, fs, f0max, f0min, frame_period):
 
 def change_rms(data1, sr1, data2, sr2, rate):  # 1是输入音频，2是输出音频,rate是2的占比
   # print(data1.max(),data2.max())
-  rms1 = librosa.feature.rms(
-    y=data1, frame_length=sr1 // 2 * 2, hop_length=sr1 // 2
-  )  # 每半秒一个点
+  rms1 = librosa.feature.rms(y=data1, frame_length=sr1 // 2 * 2, hop_length=sr1 // 2)
   rms2 = librosa.feature.rms(y=data2, frame_length=sr2 // 2 * 2, hop_length=sr2 // 2)
   rms1 = torch.from_numpy(rms1)
-  rms1 = F.interpolate(
-    rms1.unsqueeze(0), size=data2.shape[0], mode="linear"
-  ).squeeze()
+  rms1 = F.interpolate(rms1.unsqueeze(0), size=data2.shape[0], mode="linear").squeeze()
   rms2 = torch.from_numpy(rms2)
-  rms2 = F.interpolate(
-    rms2.unsqueeze(0), size=data2.shape[0], mode="linear"
-  ).squeeze()
+  rms2 = F.interpolate(rms2.unsqueeze(0), size=data2.shape[0], mode="linear").squeeze()
   rms2 = torch.max(rms2, torch.zeros_like(rms2) + 1e-6)
-  data2 *= (
-          torch.pow(rms1, torch.tensor(1 - rate))
-          * torch.pow(rms2, torch.tensor(rate - 1))
-  ).numpy()
+  data2 *= (torch.pow(rms1, torch.tensor(1 - rate)) * torch.pow(rms2, torch.tensor(rate - 1))).numpy()
   return data2
 
 
@@ -108,9 +97,7 @@ class VC(object):
       )
       pad_size = (p_len - len(f0) + 1) // 2
       if pad_size > 0 or p_len - len(f0) - pad_size > 0:
-        f0 = np.pad(
-          f0, [[pad_size, p_len - len(f0) - pad_size]], mode="constant"
-        )
+        f0 = np.pad(f0, [[pad_size, p_len - len(f0) - pad_size]], mode="constant")
     elif f0_method == "harvest":
       input_audio_path2wav[input_audio_path] = x.astype(np.double)
       f0 = cache_harvest_f0(input_audio_path, self.sr, f0_max, f0_min, 10)
@@ -190,16 +177,10 @@ class VC(object):
     # with open("test.txt","w")as f:f.write("\n".join([str(i)for i in f0.tolist()]))
     tf0 = self.sr // self.window  # 每秒f0点数
     if inp_f0 is not None:
-      delta_t = np.round(
-        (inp_f0[:, 0].max() - inp_f0[:, 0].min()) * tf0 + 1
-      ).astype("int16")
-      replace_f0 = np.interp(
-        list(range(delta_t)), inp_f0[:, 0] * 100, inp_f0[:, 1]
-      )
+      delta_t = np.round((inp_f0[:, 0].max() - inp_f0[:, 0].min()) * tf0 + 1).astype("int16")
+      replace_f0 = np.interp(list(range(delta_t)), inp_f0[:, 0] * 100, inp_f0[:, 1])
       shape = f0[self.x_pad * tf0 : self.x_pad * tf0 + len(replace_f0)].shape[0]
-      f0[self.x_pad * tf0 : self.x_pad * tf0 + len(replace_f0)] = replace_f0[
-                                                                  :shape
-                                                                  ]
+      f0[self.x_pad * tf0 : self.x_pad * tf0 + len(replace_f0)] = replace_f0[:shape]
     # with open("test_opt.txt","w")as f:f.write("\n".join([str(i)for i in f0.tolist()]))
     f0bak = f0.copy()
     f0_mel = 1127 * np.log(1 + f0 / 700)
@@ -248,11 +229,7 @@ class VC(object):
 
     if protect < 0.5 and pitch != None and pitchf != None:
       feats0 = feats.clone()
-    if (
-            isinstance(index, type(None)) == False
-            and isinstance(big_npy, type(None)) == False
-            and index_rate != 0
-    ):
+    if isinstance(index, type(None)) == False and isinstance(big_npy, type(None)) == False and index_rate != 0:
       npy = feats[0].cpu().numpy()
       if self.is_half:
         npy = npy.astype("float32")
@@ -299,9 +276,8 @@ class VC(object):
           .numpy()
         )
       else:
-        audio1 = (
-          (net_g.infer(feats, p_len, sid)[0][0, 0]).data.cpu().float().numpy()
-        )
+        audio1 = (net_g.infer(feats, p_len, sid)[0][0, 0]).data.cpu().float().numpy()
+
     del feats, p_len, padding_mask
     if torch.cuda.is_available():
       torch.cuda.empty_cache()
@@ -410,15 +386,15 @@ class VC(object):
             net_g,
             sid,
             audio_pad[s : t + self.t_pad2 + self.window],
-            pitch[:, s // self.window : (t + self.t_pad2) // self.window],
-            pitchf[:, s // self.window : (t + self.t_pad2) // self.window],
+            pitch[:,s//self.window:(t+self.t_pad2)//self.window],
+            pitchf[:,s//self.window:(t+self.t_pad2)//self.window],
             times,
             index,
             big_npy,
             index_rate,
             version,
             protect,
-          )[self.t_pad_tgt : -self.t_pad_tgt]
+          )[self.t_pad_tgt:-self.t_pad_tgt]
         )
       else:
         audio_opt.append(
@@ -426,7 +402,7 @@ class VC(object):
             model,
             net_g,
             sid,
-            audio_pad[s : t + self.t_pad2 + self.window],
+            audio_pad[s:t+self.t_pad2+self.window],
             None,
             None,
             times,
@@ -445,15 +421,15 @@ class VC(object):
           net_g,
           sid,
           audio_pad[t:],
-          pitch[:, t // self.window :] if t is not None else pitch,
-          pitchf[:, t // self.window :] if t is not None else pitchf,
+          pitch[:,t//self.window:] if t is not None else pitch,
+          pitchf[:,t//self.window:] if t is not None else pitchf,
           times,
           index,
           big_npy,
           index_rate,
           version,
           protect,
-        )[self.t_pad_tgt : -self.t_pad_tgt]
+        )[self.t_pad_tgt:-self.t_pad_tgt]
       )
     else:
       audio_opt.append(
@@ -470,21 +446,24 @@ class VC(object):
           index_rate,
           version,
           protect,
-        )[self.t_pad_tgt : -self.t_pad_tgt]
+        )[self.t_pad_tgt:-self.t_pad_tgt]
       )
+
     audio_opt = np.concatenate(audio_opt)
     if rms_mix_rate != 1:
       audio_opt = change_rms(audio, 16000, audio_opt, tgt_sr, rms_mix_rate)
+
     if resample_sr >= 16000 and tgt_sr != resample_sr:
-      audio_opt = librosa.resample(
-        audio_opt, orig_sr=tgt_sr, target_sr=resample_sr
-      )
+      audio_opt = librosa.resample(audio_opt, orig_sr=tgt_sr, target_sr=resample_sr)
+
     audio_max = np.abs(audio_opt).max() / 0.99
     max_int16 = 32768
     if audio_max > 1:
       max_int16 /= audio_max
+
     audio_opt = (audio_opt * max_int16).astype(np.int16)
     del pitch, pitchf, sid
+
     if torch.cuda.is_available():
       torch.cuda.empty_cache()
     return audio_opt
