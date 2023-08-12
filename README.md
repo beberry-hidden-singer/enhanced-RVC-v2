@@ -3,7 +3,7 @@ ervc-v2
 
 ## Additional Features
 
-* [Multi-Scale STFT Discriminator](lib/model/discriminator.py#349)
+* [Multi-Scale STFT Discriminator](lib/model/discriminator.py#L349)
   * according to [this paper](https://arxiv.org/pdf/2306.06814.pdf): `MS-STFT discriminator trains the decoder efficiently and facilitates the synthesis of audio with better quality than the combination of a multi-period discriminator and multi-scale discriminator`
 * [Multi-Resolution STFT Loss](lib/model/losses.py#L158)
   * weighted version based on [SpeechEnhancement](https://github.com/Nitin4525/SpeechEnhancement/blob/master/loss.py#L98)
