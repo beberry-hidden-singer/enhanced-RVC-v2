@@ -44,6 +44,7 @@
     "gin_channels": 256,
     "spk_embed_dim": 109,
     "bigv": false,
+    "msstftd": false,
     "mrd": false,
     "mrstft": false,
     "weighted_mrstft": false

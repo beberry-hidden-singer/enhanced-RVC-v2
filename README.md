@@ -2,12 +2,15 @@
 ervc-v2
 
 ## Additional Features
-* [Multi-Resolution STFT Loss](lib/model/losses.py#L156)
+
+* [Multi-Scale STFT Discriminator](lib/model/discriminator.py#349)
+  * according to [this paper](https://arxiv.org/pdf/2306.06814.pdf): `MS-STFT discriminator trains the decoder efficiently and facilitates the synthesis of audio with better quality than the combination of a multi-period discriminator and multi-scale discriminator`
+* [Multi-Resolution STFT Loss](lib/model/losses.py#L158)
   * weighted version based on [SpeechEnhancement](https://github.com/Nitin4525/SpeechEnhancement/blob/master/loss.py#L98)
-* [Multi-Resolution Discriminator](lib/model/discriminator.py#L201)
+* [Multi-Resolution Discriminator](lib/model/discriminator.py#L203)
   * can be init with pre-trained weights from [Sovits-5.0](https://github.com/PlayVoice/so-vits-svc-5.0/releases/tag/5.0)
 * [BigVGAN](lib/model/generator.py#L413)
-  * can be init with pre-trained weights from [NSF-BigVGAN](https://github.com/PlayVoice/NSF-BigVGAN/releases/tag/release)
+  * can be init with pre-trained weights from [NSF-BigVGAN](https://github.com/PlayVoice/NSF-BigVGAN/releases/tag/augment)
 * option to use `crepe`, `mangio-crepe` and `rmvpe` when extracting f0
 
 ## Further modifications

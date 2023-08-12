@@ -15,7 +15,7 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
 from model import commons
-from model.discriminator import Discriminator, MultiPeriodDiscriminatorV2
+from model.discriminator import Discriminator, MultiPeriodDiscriminatorV2, MultiScaleSTFTDiscriminator
 from model.losses import generator_loss, discriminator_loss, feature_loss, kl_loss, MultiResolutionSTFTLoss
 from model.mel_processing import mel_spectrogram_torch, spec_to_mel_torch
 from model.models import SynthesizerTrnMs768NSFsid, SynthesizerTrnMs768NSFsid_nono
@@ -110,6 +110,9 @@ def main():
   # discriminator init
   if hps.model.mrd:
     net_d = Discriminator(hps.resolutions, use_spectral_norm=hps.model.use_spectral_norm)
+  elif hps.model.msstftd:
+    # net_d = MultiScaleSTFTDiscriminator(hps.data.filter_length)
+    net_d = MultiScaleSTFTDiscriminator(512)
   else:
     net_d = MultiPeriodDiscriminatorV2(use_spectral_norm=hps.model.use_spectral_norm)
 
@@ -164,7 +167,7 @@ def main():
       vg_dict = {k: v for k, v in vg_dict.items() if not k.startswith('conv_pre')}
       print(net_g.dec.load_state_dict(vg_dict, strict=False))
 
-  logger.info("Model init")
+  logger.info("Model Summary")
   logger.info('Discriminator init type: %s', type(net_d))
   logger.info('Generator Vocoder init type: %s', type(net_g.dec))
   logger.info("D Number of Trainable Params: {:,}".format(sum(p.numel() for p in net_d.parameters())))
@@ -307,7 +310,7 @@ def train_and_evaluate(epoch, hps, nets, optims, scaler, loaders, logger, writer
       wave = commons.slice_segments(wave, ids_slice * hps.data.hop_length, hps.train.segment_size)  # slice
 
       # Discriminator
-      if hps.model.mrd:
+      if hps.model.mrd or hps.model.msstftd:
         # Discriminator Loss
         disc_real, disc_fake = net_d(wave), net_d(y_hat.detach())
         with autocast(enabled=False):
@@ -328,7 +331,7 @@ def train_and_evaluate(epoch, hps, nets, optims, scaler, loaders, logger, writer
       loss_stft = 0.
 
       # Generator
-      if hps.model.mrd:
+      if hps.model.mrd or hps.model.msstftd:
         disc_real, disc_fake = net_d(wave), net_d(y_hat)
         with autocast(enabled=False):
           # 1. Mel Loss

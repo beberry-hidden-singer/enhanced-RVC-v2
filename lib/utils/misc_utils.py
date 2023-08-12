@@ -227,8 +227,10 @@ def get_hparams():
   parser.add_argument('--c_stft', type=float, default=0.5, help='multiplier for MR-STFT loss')
   parser.add_argument('--bigv', action='store_true', help='whether to use BigVGAN Generator')
   parser.add_argument('--mrd', action='store_true', help='whether to use Multi-Resolution Discriminator')
+  parser.add_argument('--msstftd', action='store_true', help='whether to add Multi-Scale STFT Discriminator')
   parser.add_argument('--mrstft', action='store_true', help='whether to add Multi-Resolution STFT Loss term')
   parser.add_argument('--weighted_mrstft', action='store_true', help='whether to use weighted version of Multi-Resolution STFT Loss')
+
 
   args = parser.parse_args()
 
@@ -263,6 +265,7 @@ def get_hparams():
   hparams.train.c_kl = args.c_kl
   hparams.train.c_stft = args.c_stft
   hparams.model.bigv = args.bigv
+  hparams.model.msstftd = args.msstftd
   hparams.model.mrd = args.mrd
   hparams.model.mrstft = args.mrstft
   hparams.model.weighted_mrstft = args.weighted_mrstft
