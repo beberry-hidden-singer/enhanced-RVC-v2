@@ -124,13 +124,15 @@ class STFTLoss(torch.nn.Module):
   also supports weighted version (https://sewplay.github.io/cv/papers/2021/slt_0000470.pdf)
   """
 
-  def __init__(self, fft_size=1024, shift_size=120, win_length=600, window="hann_window", weight_by_factor=False):
+  def __init__(self, fft_size=1024, shift_size=120, win_length=600, window="hann_window", weight_by_factor=False, device=None):
     """Initialize STFT loss module."""
     super(STFTLoss, self).__init__()
     self.fft_size = fft_size
     self.shift_size = shift_size
     self.win_length = win_length
-    self.window = getattr(torch, window)(win_length).cuda()
+
+    self.window = getattr(torch, window)(win_length).to(device)
+
     self.spectral_convergenge_loss = SpectralConvergengeLoss()
     self.log_stft_magnitude_loss = LogSTFTMagnitudeLoss()
     self.factor = fft_size / 2048 if weight_by_factor else 1.
@@ -156,7 +158,7 @@ class STFTLoss(torch.nn.Module):
 class MultiResolutionSTFTLoss(torch.nn.Module):
   """Multi resolution STFT loss module."""
 
-  def __init__(self, resolutions, window="hann_window", weight_by_factor=False):
+  def __init__(self, resolutions, window="hann_window", weight_by_factor=False, device=None):
     """Initialize Multi resolution STFT loss module.
     Args:
         resolutions (list): List of (FFT size, hop size, window length).
@@ -166,7 +168,7 @@ class MultiResolutionSTFTLoss(torch.nn.Module):
 
     self.stft_losses = torch.nn.ModuleList()
     for fs, ss, wl in resolutions:
-      self.stft_losses += [STFTLoss(fs, ss, wl, window, weight_by_factor=weight_by_factor)]
+      self.stft_losses += [STFTLoss(fs, ss, wl, window, weight_by_factor=weight_by_factor, device=device)]
 
   def forward(self, x, y):
     """Calculate forward propagation.

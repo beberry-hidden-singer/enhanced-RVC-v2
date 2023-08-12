@@ -31,8 +31,6 @@ logging.getLogger("numba").setLevel(logging.WARNING)
 now_dir = os.getcwd()
 tmp = os.path.join(now_dir, "TEMP")
 shutil.rmtree(tmp, ignore_errors=True)
-shutil.rmtree("%s/runtime/Lib/site-packages/lib.infer_pack" % (now_dir), ignore_errors=True)
-shutil.rmtree("%s/runtime/Lib/site-packages/uvr5_pack" % (now_dir), ignore_errors=True)
 os.makedirs(tmp, exist_ok=True)
 os.makedirs(os.path.join(now_dir, "logs"), exist_ok=True)
 os.makedirs(os.path.join(now_dir, "weights"), exist_ok=True)
@@ -40,59 +38,7 @@ os.environ["TEMP"] = tmp
 warnings.filterwarnings("ignore")
 torch.manual_seed(114514)
 
-
 config = Config()
-# 判断是否有能用来训练和加速推理的N卡
-ngpu = torch.cuda.device_count()
-gpu_infos = []
-mem = []
-if_gpu_ok = False
-
-if torch.cuda.is_available() or ngpu != 0:
-  for i in range(ngpu):
-    gpu_name = torch.cuda.get_device_name(i)
-    if any(
-            value in gpu_name.upper()
-            for value in [
-              "10",
-              "16",
-              "20",
-              "30",
-              "40",
-              "A2",
-              "A3",
-              "A4",
-              "P4",
-              "A50",
-              "500",
-              "A60",
-              "70",
-              "80",
-              "90",
-              "M4",
-              "T4",
-              "TITAN",
-            ]
-    ):
-      # A10#A100#V100#A40#P40#M40#K80#A4500
-      if_gpu_ok = True  # 至少有一张能用的N卡
-      gpu_infos.append("%s\t%s" % (i, gpu_name))
-      mem.append(
-        int(
-          torch.cuda.get_device_properties(i).total_memory
-          / 1024
-          / 1024
-          / 1024
-          + 0.4
-        )
-      )
-if if_gpu_ok and len(gpu_infos) > 0:
-  gpu_info = "\n".join(gpu_infos)
-  default_batch_size = min(mem) // 2
-else:
-  gpu_info = "No GPU Found"
-  default_batch_size = 1
-gpus = "-".join([i[0] for i in gpu_infos])
 
 
 class ToolButton(gr.Button, gr.components.FormComponent):
@@ -205,8 +151,10 @@ def get_vc(sid, to_return_protect0, to_return_protect1):
       print("clean_empty_cache")
       del net_g, n_spk, vc, hubert_model, tgt_sr  # ,cpt
       hubert_model = net_g = n_spk = vc = hubert_model = tgt_sr = None
+
       if torch.cuda.is_available():
         torch.cuda.empty_cache()
+
       ###楼下不这么折腾清理不干净
       if_f0 = cpt.get("f0", 1)
       version = cpt.get("version", "v1")
@@ -225,8 +173,10 @@ def get_vc(sid, to_return_protect0, to_return_protect1):
         else:
           net_g = SynthesizerTrnMs768NSFsid_nono(*cpt["config"])
       del net_g, cpt
+
       if torch.cuda.is_available():
         torch.cuda.empty_cache()
+
       cpt = None
     return {"visible": False, "__type__": "update"}
   person = "%s/%s" % (weight_root, sid)
@@ -326,12 +276,12 @@ with gr.Blocks() as app:
             vc_transform0 = gr.Number(label="Pitch Translation in int Semi-tones", value=0)
             input_audio0 = gr.Textbox(
               label="Path to Input Audio",
-              value="../../boram_vocals.wav",
+              value="../../night_with_you_verse1_48k.wav",
             )
             f0method0 = gr.Radio(
               label="Pitch Extraction Algorithm",
               choices=["pm", "harvest", "crepe", "mangio-crepe", "rmvpe"],
-              value="crepe",
+              value="rmvpe",
               interactive=True,
             )
             filter_radius0 = gr.Slider(

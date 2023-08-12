@@ -22,6 +22,16 @@ HUBERT_FPATH = '../pretrain/hubert_base.pt'
 RMVPE_FPATH = '../pretrain/rmvpe.pt'
 
 
+def get_device():
+  device = 'cpu'
+  if torch.cuda.is_available():
+    device = 'cuda'
+  elif torch.backends.mps.is_available() and torch.backends.mps.is_built():
+    device = 'mps'
+  print("Found Device:", device)
+  return device
+
+
 def load_audio(file, sr):
   try:
     # https://github.com/openai/whisper/blob/main/whisper/audio.py#L26
@@ -53,10 +63,7 @@ def load_checkpoint(checkpoint_path, model, optimizer=None, load_opt=1):
     try:
       new_state_dict[k] = saved_state_dict[k]
       if saved_state_dict[k].shape != state_dict[k].shape:
-        print(
-          "shape-%s-mismatch|need-%s|get-%s"
-          % (k, state_dict[k].shape, saved_state_dict[k].shape)
-        )  #
+        print("shape-%s-mismatch|need-%s|get-%s" % (k, state_dict[k].shape, saved_state_dict[k].shape))  #
         raise KeyError
     except:
       # logger.info(traceback.format_exc())
@@ -70,23 +77,15 @@ def load_checkpoint(checkpoint_path, model, optimizer=None, load_opt=1):
 
   iteration = checkpoint_dict["iteration"]
   learning_rate = checkpoint_dict["learning_rate"]
-  if (
-          optimizer is not None and load_opt == 1
-  ):  ###加载不了，如果是空的的话，重新初始化，可能还会影响lr时间表的更新，因此在train文件最外围catch
-    #   try:
+  if optimizer is not None and load_opt == 1:
     optimizer.load_state_dict(checkpoint_dict["optimizer"])
-  #   except:
-  #     traceback.print_exc()
+
   logger.info("Loaded checkpoint '{}' (epoch {})".format(checkpoint_path, iteration))
   return model, optimizer, learning_rate, iteration
 
 
 def save_checkpoint(model, optimizer, learning_rate, iteration, checkpoint_path):
-  logger.info(
-    "Saving model and optimizer state at epoch {} to {}".format(
-      iteration, checkpoint_path
-    )
-  )
+  logger.info("Saving model and optimizer state at epoch {} to {}".format(iteration, checkpoint_path))
   if hasattr(model, "module"):
     state_dict = model.module.state_dict()
   else:
@@ -218,6 +217,8 @@ def get_hparams():
   parser.add_argument("--cache", action='store_true', help="whether to cache the dataset in GPU memory",)
   parser.add_argument("--save_small_weights", action='store_true', help="save the extracted model in weights directory when saving checkpoints",)
   parser.add_argument("--no_f0", action='store_true', help="whether to not use f0")
+  parser.add_argument("--pretrain", action='store_true', help="whether to turn on pre-training mode")
+  parser.add_argument('--load_opt', action='store_true', help='whether to load optimizer when loading checkpoints')
 
   # custom
   parser.add_argument('--seed', type=int, default=1234, help='training seed')
@@ -272,9 +273,16 @@ def get_hparams():
   hparams.sample_rate = args.sample_rate
   hparams.if_f0 = not args.no_f0
   hparams.if_latest = args.latest
+  hparams.if_pretrain = args.pretrain
+  hparams.load_opt = args.load_opt
   hparams.save_every_weights = args.save_small_weights
   hparams.if_cache_data_in_gpu = args.cache
   hparams.data.training_files = "%s/filelist.txt" % experiment_dir
+
+  if get_device() == 'mps' and hparams.train.fp16_run:
+    print("Turning off mixed precision for MPS Training")
+    hparams.train.fp16_run = False
+
   return hparams
 
 

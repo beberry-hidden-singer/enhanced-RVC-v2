@@ -38,6 +38,8 @@ elif args.sample_rate == '32k':
 else:
   raise ValueError(f'Given sample rate (`{args.sample_rate}`) not understood')
 
+print(f"Using Sample Rate: {int(sr//1000)}K")
+
 os.makedirs(exp_dir, exist_ok=True)
 mutex = multiprocessing.Lock()
 
@@ -130,7 +132,8 @@ class PreProcess:
 
   def pipeline_mp_inp_dir(self, inp_root, n_p):
     try:
-      infos = [("%s/%s" % (inp_root, name), idx) for idx, name in enumerate(sorted(list(os.listdir(inp_root))))]
+      valid_fnames = [x for x in list(os.listdir(inp_root)) if x.endswith('.wav')]
+      infos = [("%s/%s" % (inp_root, name), idx) for idx, name in enumerate(sorted(valid_fnames))]
       if n_p == 1:
         for i in range(n_p):
           self.pipeline_mp(infos[i::n_p])

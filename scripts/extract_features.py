@@ -11,7 +11,7 @@ import torch
 import torch.nn.functional as F
 from fairseq import checkpoint_utils
 
-from utils.misc_utils import HUBERT_FPATH
+from utils.misc_utils import get_device, HUBERT_FPATH
 
 os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
 os.environ["PYTORCH_MPS_HIGH_WATERMARK_RATIO"] = "0.0"
@@ -21,7 +21,7 @@ argparser.add_argument('exp_dir', help='experiment dirpath')
 
 args= argparser.parse_args()
 exp_dir = args.exp_dir
-device = "cuda" if torch.cuda.is_available() else 'cpu'
+device = get_device()
 
 print(exp_dir)
 wavPath = "%s/1_16k_wavs" % exp_dir

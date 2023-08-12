@@ -916,9 +916,7 @@ class SynthesizerTrnMs256NSFsid(nn.Module):
     self.flow.remove_weight_norm()
     self.enc_q.remove_weight_norm()
 
-  def forward(
-          self, phone, phone_lengths, pitch, pitchf, y, y_lengths, ds
-  ):  # 这里ds是id，[bs,1]
+  def forward(self, phone, phone_lengths, pitch, pitchf, y, y_lengths, ds):  # 这里ds是id，[bs,1]
     # print(1,pitch.shape)#[bs,t]
     g = self.emb_g(ds).unsqueeze(-1)  # [b, 256, 1]##1是t，广播的
     m_p, logs_p, x_mask = self.enc_p(phone, pitch, phone_lengths)
@@ -990,7 +988,6 @@ class SynthesizerTrnMs768NSFsid(nn.Module):
     self.upsample_kernel_sizes = upsample_kernel_sizes
     self.segment_size = segment_size
     self.gin_channels = gin_channels
-    # self.hop_length = hop_length#
     self.spk_embed_dim = spk_embed_dim
     self.enc_p = TextEncoder768(
       inter_channels,
@@ -1004,7 +1001,6 @@ class SynthesizerTrnMs768NSFsid(nn.Module):
 
     dec_cls = GeneratorBigV if bigv else GeneratorNSF
     self.dec = dec_cls(
-    # self.dec = GeneratorBigV(
       inter_channels,
       resblock,
       resblock_kernel_sizes,
@@ -1051,7 +1047,7 @@ class SynthesizerTrnMs768NSFsid(nn.Module):
     o = self.dec(z_slice, pitchf, g=g)
     return o, ids_slice, x_mask, y_mask, (z, z_p, m_p, logs_p, m_q, logs_q)
 
-  def infer(self, phone, phone_lengths, pitch, nsff0, sid, rate=None):
+  def infer(self, phone, phone_lengths, pitch, nsff0, sid, rate=None, clip_audio=True):
     g = self.emb_g(sid).unsqueeze(-1)
     m_p, logs_p, x_mask = self.enc_p(phone, pitch, phone_lengths)
     z_p = (m_p + torch.exp(logs_p) * torch.randn_like(m_p) * 0.66666) * x_mask
@@ -1062,6 +1058,12 @@ class SynthesizerTrnMs768NSFsid(nn.Module):
       nsff0 = nsff0[:, -head:]
     z = self.flow(z_p, x_mask, g=g, reverse=True)
     o = self.dec(z * x_mask, nsff0, g=g)
+
+    if clip_audio:
+      max_val = 32768.0
+      o = max_val * o
+      o = o.clamp(min=-max_val, max=max_val-1)
+
     return o, x_mask, (z, z_p, m_p, logs_p)
 
 

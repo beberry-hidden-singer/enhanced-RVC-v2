@@ -57,6 +57,7 @@ def main():
   writer_eval = SummaryWriter(log_dir=os.path.join(hps.model_dir, "eval"))
 
   torch.manual_seed(hps.train.seed)
+  device = misc_utils.get_device()
 
   if hps.if_f0:
     train_dataset = TextAudioLoaderMultiNSFsid(hps.data.training_files, hps.data)
@@ -112,18 +113,20 @@ def main():
   else:
     net_d = MultiPeriodDiscriminatorV2(use_spectral_norm=hps.model.use_spectral_norm)
 
-  if torch.cuda.is_available():
-    net_g = net_g.cuda()
-    net_d = net_d.cuda()
+  net_g = net_g.to(device)
+  net_d = net_d.to(device)
 
   # init optim
   optim_g = torch.optim.AdamW(net_g.parameters(), hps.train.learning_rate, betas=hps.train.betas, eps=hps.train.eps,)
   optim_d = torch.optim.AdamW(net_d.parameters(), hps.train.learning_rate, betas=hps.train.betas, eps=hps.train.eps,)
 
   try:  # 如果能加载自动resume
-    _, _, _, epoch_str = misc_utils.load_checkpoint(misc_utils.latest_checkpoint_path(hps.model_dir, "D_*.pth"), net_d, optim_d)
-    # _, _, _, epoch_str = utils.load_checkpoint(utils.latest_checkpoint_path(hps.model_dir, "G_*.pth"), net_g, optim_g,load_opt=0)
-    _, _, _, epoch_str = misc_utils.load_checkpoint(misc_utils.latest_checkpoint_path(hps.model_dir, "G_*.pth"), net_g, optim_g)
+
+    _, _, _, epoch_str = misc_utils.load_checkpoint(misc_utils.latest_checkpoint_path(
+      hps.model_dir, "G_*.pth"), net_g, optim_g, load_opt=hps.load_opt)
+    _, _, _, epoch_str = misc_utils.load_checkpoint(misc_utils.latest_checkpoint_path(
+      hps.model_dir, "D_*.pth"), net_d, optim_d, load_opt=hps.load_opt)
+
     logger.info("loaded from latest checkpoints")
     GLOBAL_STEP = (epoch_str - 1) * len(train_loader)
   except:  # 如果首次不能加载，加载pretrain
@@ -135,26 +138,27 @@ def main():
       pg = torch.load(hps.pretrainG, map_location="cpu")["model"]
       if hps.model.spk_embed_dim != 109:
         pg = {k: v for k, v in pg.items() if not k.startswith('emb_g')}
-      if hps.model.bigv:
+
+      if hps.if_pretrain and hps.model.bigv and hps.sample_rate == '32k':
         # drop any keys with 'dec' prefix, will print `_IncompatibleKeys` with missing keys
         pg = {k:v for k,v in pg.items() if not k.startswith('dec')}
       print(net_g.load_state_dict(pg, strict=False))
 
     if hps.pretrainD != "":
-      if hps.model.mrd:
+      if hps.if_pretrain and hps.model.mrd:
         logger.info("loading pretrained Multi-Period DiscriminatorV2 from `%s`" % hps.pretrainD)
         print(net_d.MPD.load_state_dict(torch.load(hps.pretrainD, map_location="cpu")["model"]))
       else:
         logger.info("loading pretrained Discriminator from `%s`" % hps.pretrainD)
         print(net_d.load_state_dict(torch.load(hps.pretrainD, map_location="cpu")["model"]))
 
-    if hps.model.mrd and hps.pretrainS != "":
+    if hps.if_pretrain and hps.model.mrd and hps.pretrainS != "":
       logger.info("loading pretrained Multi-Resolution Discriminator from `%s`" % hps.pretrainS)
       sd_dict = torch.load(hps.pretrainS, map_location='cpu')['model_d']
       mrd_dict = {f'{k.replace("MRD.", "")}':v for k,v in sd_dict.items() if k.startswith('MRD')}
       print(net_d.MRD.load_state_dict(mrd_dict))
 
-    if hps.model.bigv and hps.sample_rate == '32k' and hps.pretrainV != "":
+    if hps.if_pretrain and hps.model.bigv and hps.sample_rate == '32k' and hps.pretrainV != "":
       logger.info("loading pretrained BigVGAN from `%s`" % hps.pretrainV)
       vg_dict = torch.load(hps.pretrainV, map_location='cpu')['model_g']
       vg_dict = {k: v for k, v in vg_dict.items() if not k.startswith('conv_pre')}
@@ -183,14 +187,15 @@ def main():
       loaders=[train_loader, None],
       logger=logger,
       writers=[writer, writer_eval],
-      cache=cache
+      cache=cache,
+      device=device
     )
 
     scheduler_g.step()
     scheduler_d.step()
 
 
-def train_and_evaluate(epoch, hps, nets, optims, scaler, loaders, logger, writers, cache):
+def train_and_evaluate(epoch, hps, nets, optims, scaler, loaders, logger, writers, cache, device):
   global GLOBAL_STEP
 
   net_g, net_d = nets
@@ -206,7 +211,7 @@ def train_and_evaluate(epoch, hps, nets, optims, scaler, loaders, logger, writer
   # may not be used but just init for now
   stft_criterion = None
   if hps.model.mrstft:
-    stft_criterion = MultiResolutionSTFTLoss(hps.resolutions, weight_by_factor=hps.model.weighted_mrstft)
+    stft_criterion = MultiResolutionSTFTLoss(hps.resolutions, weight_by_factor=hps.model.weighted_mrstft, device=device)
 
   # Prepare data iterator
   if hps.if_cache_data_in_gpu:
@@ -222,18 +227,17 @@ def train_and_evaluate(epoch, hps, nets, optims, scaler, loaders, logger, writer
         else:
           phone,phone_lengths,spec,spec_lengths,wave,wave_lengths,sid = info
 
-        # Load on CUDA
-        if torch.cuda.is_available():
-          phone = phone.cuda()
-          phone_lengths = phone_lengths.cuda()
-          if hps.if_f0:
-            pitch = pitch.cuda()
-            pitchf = pitchf.cuda()
-          sid = sid.cuda()
-          spec = spec.cuda()
-          spec_lengths = spec_lengths.cuda()
-          wave = wave.cuda()
-          wave_lengths = wave_lengths.cuda()
+        # to device
+        phone = phone.to(device)
+        phone_lengths = phone_lengths.to(device)
+        if hps.if_f0:
+          pitch = pitch.to(device)
+          pitchf = pitchf.to(device)
+        sid = sid.to(device)
+        spec = spec.to(device)
+        spec_lengths = spec_lengths.to(device)
+        wave = wave.to(device)
+        wave_lengths = wave_lengths.to(device)
 
         # Cache on list
         if hps.if_f0:
@@ -257,17 +261,18 @@ def train_and_evaluate(epoch, hps, nets, optims, scaler, loaders, logger, writer
       phone,phone_lengths,pitch,pitchf,spec,spec_lengths,wave,wave_lengths,sid = info
     else:
       phone, phone_lengths, spec, spec_lengths, wave, wave_lengths, sid = info
+
     ## Load on CUDA
-    if hps.if_cache_data_in_gpu == False and torch.cuda.is_available():
-      phone = phone.cuda()
-      phone_lengths = phone_lengths.cuda()
+    if not hps.if_cache_data_in_gpu:
+      phone = phone.to(device)
+      phone_lengths = phone_lengths.to(device)
       if hps.if_f0:
-        pitch = pitch.cuda()
-        pitchf = pitchf.cuda()
-      sid = sid.cuda()
-      spec = spec.cuda()
-      spec_lengths = spec_lengths.cuda()
-      wave = wave.cuda()
+        pitch = pitch.to(device)
+        pitchf = pitchf.to(device)
+      sid = sid.to(device)
+      spec = spec.to(device)
+      spec_lengths = spec_lengths.to(device)
+      wave = wave.to(device)
 
     # Calculate
     with autocast(enabled=hps.train.fp16_run):

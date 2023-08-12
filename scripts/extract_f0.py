@@ -13,7 +13,7 @@ import pyworld
 import torch
 import torchcrepe
 
-from utils.misc_utils import load_audio, RMVPE_FPATH
+from utils.misc_utils import get_device, load_audio, RMVPE_FPATH
 
 logging.getLogger("numba").setLevel(logging.WARNING)
 
@@ -39,6 +39,7 @@ elif 'mangio' in f0method:
   crepe_batch_size_or_hop_length = args.mangio_hop_length
   print("Mangio-CREPE Hop Length:", crepe_batch_size_or_hop_length)
 
+device = get_device()
 
 class FeatureInput(object):
   def __init__(self, samplerate=16000, hop_size=160, is_half=False):
@@ -53,6 +54,8 @@ class FeatureInput(object):
 
     self.rmvpe = None
     self.is_half = is_half  # TODO: make this customizable
+
+
 
   def compute_f0(self, path, f0_method, batch_size_or_hop_length):
     x = load_audio(path, self.fs)
@@ -95,7 +98,6 @@ class FeatureInput(object):
 
     elif f0_method == 'crepe':
       # Pick a batch size that doesn't cause memory errors on your gpu
-      torch_device = torch.device(f"cuda" if torch.cuda.is_available() else 'cpu' )
 
       model = "full"
       # batch_size = 512
@@ -109,7 +111,7 @@ class FeatureInput(object):
         self.f0_max,
         model,
         batch_size=batch_size_or_hop_length,
-        device=torch_device,
+        device=device,
         return_periodicity=True,
       )
 
@@ -123,12 +125,8 @@ class FeatureInput(object):
       # print("CREPE PITCH EXTRACTION HOP LENGTH: " + str(crepe_hop_length))
       x = x.astype(np.float32)
       x /= np.quantile(np.abs(x), 0.999)
-      torch_device_index = 0
-      if torch.cuda.is_available():
-        torch_device = torch.device(f"cuda:{torch_device_index % torch.cuda.device_count()}")
-      else:
-        torch_device = torch.device("cpu")
-      audio = torch.from_numpy(x).to(torch_device, copy=True)
+
+      audio = torch.from_numpy(x).to(device, copy=True)
       audio = torch.unsqueeze(audio, dim=0)
       if audio.ndim == 2 and audio.shape[0] > 1:
         audio = torch.mean(audio, dim=0, keepdim=True).detach()
@@ -146,7 +144,7 @@ class FeatureInput(object):
         self.f0_max,
         "full",
         batch_size=batch_size_or_hop_length * 2,
-        device=torch_device,
+        device=device,
         pad=True
       )
       p_len = p_len or x.shape[0] // batch_size_or_hop_length
@@ -164,8 +162,7 @@ class FeatureInput(object):
       if self.rmvpe is None:
         from model.rmvpe import RMVPE
         print("loading rmvpe model")
-        torch_device = torch.device(f"cuda" if torch.cuda.is_available() else 'cpu' )
-        self.rmvpe = RMVPE(RMVPE_FPATH, is_half=self.is_half, device=torch_device)
+        self.rmvpe = RMVPE(RMVPE_FPATH, is_half=self.is_half, device=device)
 
       f0 = self.rmvpe.infer_from_audio(x, thred=0.03)
 

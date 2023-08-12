@@ -269,14 +269,9 @@ class VC(object):
     p_len = torch.tensor([p_len], device=self.device).long()
     with torch.no_grad():
       if pitch != None and pitchf != None:
-        audio1 = (
-          (net_g.infer(feats, p_len, pitch, pitchf, sid)[0][0, 0])
-          .data.cpu()
-          .float()
-          .numpy()
-        )
+        audio1 = (net_g.infer(feats, p_len, pitch, pitchf, sid)[0][0,0]).data.cpu().float().numpy()
       else:
-        audio1 = (net_g.infer(feats, p_len, sid)[0][0, 0]).data.cpu().float().numpy()
+        audio1 = (net_g.infer(feats, p_len, sid)[0][0,0]).data.cpu().float().numpy()
 
     del feats, p_len, padding_mask
     if torch.cuda.is_available():

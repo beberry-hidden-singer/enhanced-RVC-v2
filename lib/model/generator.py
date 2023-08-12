@@ -432,7 +432,8 @@ class GeneratorBigV(torch.nn.Module):
 
     # pre conv
     # self.conv_pre = Conv1d(initial_channel, upsample_initial_channel, 7, 1, padding=3)
-    self.conv_pre = weight_norm(Conv1d(initial_channel, upsample_initial_channel, 7, 1, padding=3))
+    self.conv_pre = weight_norm(
+      Conv1d(initial_channel, upsample_initial_channel, 7, 1, padding=3))
 
     # nsf
     self.f0_upsamp = torch.nn.Upsample(scale_factor=np.prod(upsample_rates))
@@ -468,8 +469,7 @@ class GeneratorBigV(torch.nn.Module):
         )
       else:
         self.noise_convs.append(
-          Conv1d(1, upsample_initial_channel //
-                 (2 ** (i + 1)), kernel_size=1)
+          Conv1d(1, upsample_initial_channel // (2 ** (i + 1)), kernel_size=1)
         )
 
     # residual blocks using anti-aliased multi-periodicity composition modules (AMP)
