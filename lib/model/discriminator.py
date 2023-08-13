@@ -358,8 +358,10 @@ class MultiScaleSTFTDiscriminator(nn.Module):
       **kwargs: additional args for STFTDiscriminator
   """
 
-  def __init__(self, filters: int, in_channels: int = 1, out_channels: int = 1, n_ffts = [1024, 2048, 512],
-               hop_lengths = [256, 512, 128], win_lengths = [1024, 2048, 512], **kwargs):
+  def __init__(self, filters: int, in_channels: int = 1, out_channels: int = 1,
+               # n_ffts = [1024, 2048, 512, 256, 128], hop_lengths = [256, 512, 128, 64, 32], win_lengths = [1024, 2048, 512, 256, 128],
+               n_ffts = [2048, 4096, 2024, 512, 256], hop_lengths = [512, 1024, 256, 128, 64], win_lengths = [2048, 4096, 2024, 512, 256],
+               **kwargs):
     super().__init__()
     assert len(n_ffts) == len(hop_lengths) == len(win_lengths)
     self.discriminators = nn.ModuleList([

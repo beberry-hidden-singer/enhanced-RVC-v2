@@ -111,8 +111,7 @@ def main():
   if hps.model.mrd:
     net_d = Discriminator(hps.resolutions, use_spectral_norm=hps.model.use_spectral_norm)
   elif hps.model.msstftd:
-    # net_d = MultiScaleSTFTDiscriminator(hps.data.filter_length)
-    net_d = MultiScaleSTFTDiscriminator(512)
+    net_d = MultiScaleSTFTDiscriminator(hps.model.msstftd_filters)
   else:
     net_d = MultiPeriodDiscriminatorV2(use_spectral_norm=hps.model.use_spectral_norm)
 
@@ -130,7 +129,7 @@ def main():
     _, _, _, epoch_str = misc_utils.load_checkpoint(misc_utils.latest_checkpoint_path(
       hps.model_dir, "D_*.pth"), net_d, optim_d, load_opt=hps.load_opt)
 
-    logger.info("loaded from latest checkpoints")
+    logger.info("loaded from latest checkpoints (optimizer loaded: %s) " % hps.load_opt)
     GLOBAL_STEP = (epoch_str - 1) * len(train_loader)
   except:  # 如果首次不能加载，加载pretrain
     epoch_str = 1

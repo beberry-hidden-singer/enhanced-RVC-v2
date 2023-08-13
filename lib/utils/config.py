@@ -11,10 +11,6 @@ def use_fp32_config():
             strr = f.read().replace("true", "false")
         with open(f"configs/{config_file}", "w") as f:
             f.write(strr)
-    with open("trainset_preprocess_pipeline_print.py", "r") as f:
-        strr = f.read().replace("3.7", "3.0")
-    with open("trainset_preprocess_pipeline_print.py", "w") as f:
-        f.write(strr)
 
 
 class Config:
