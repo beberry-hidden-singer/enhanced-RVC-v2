@@ -297,7 +297,7 @@ class DiscriminatorSTFT(nn.Module):
       growth (int): Growth factor for the filters. Default: 1
   """
 
-  def __init__(self, filters: int = 32, in_channels: int = 1, out_channels: int = 1, n_fft: int = 1024, hop_length: int = 256,
+  def __init__(self, filters, in_channels: int = 1, out_channels: int = 1, n_fft: int = 1024, hop_length: int = 256,
                win_length: int = 1024, max_filters: int = 1024, filters_scale: int = 1, kernel_size = (3, 9), dilations = [1, 2, 4],
                stride = (1, 2), normalized: bool = True, norm: str = 'weight_norm', activation: str = 'LeakyReLU',
                activation_params: dict = {'negative_slope': 0.2}):

@@ -100,6 +100,7 @@ def vc_single(
   global tgt_sr, net_g, vc, hubert_model, version
   if input_audio_path is None:
     return "You need to upload an audio", None
+  print(f"Inferring with sid: {sid} and from file index {file_index} with rate {index_rate}")
   f0_up_key = int(f0_up_key)
   try:
     audio = load_audio(input_audio_path, 16000)

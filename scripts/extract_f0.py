@@ -203,8 +203,8 @@ class FeatureInput(object):
 
 
 if __name__ == "__main__":
-  torch.multiprocessing.set_start_method('spawn')
-
+  if 'mangio' in f0method or 'rmvpe' in f0method:
+    torch.multiprocessing.set_start_method('spawn')
   # exp_dir=r"E:\codes\py39\dataset\mi-test"
   # n_p=16
   # f = open("%s/log_extract_f0.log"%exp_dir, "w")
