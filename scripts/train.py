@@ -18,7 +18,7 @@ from model import commons
 from model.discriminator import Discriminator, MultiPeriodDiscriminatorV2, MultiScaleSTFTDiscriminator
 from model.losses import generator_loss, discriminator_loss, feature_loss, kl_loss, MultiResolutionSTFTLoss
 from model.mel_processing import mel_spectrogram_torch, spec_to_mel_torch
-from model.models import SynthesizerTrnMs768NSFsid, SynthesizerTrnMs768NSFsid_nono
+from model.models import SynthesizerTrnMs768NSFsid
 from utils import misc_utils
 from utils.data_utils import (
   TextAudioLoaderMultiNSFsid,
@@ -100,12 +100,12 @@ def main():
     )
   else:
     breakpoint() # shouldn't reach here yet
-    net_g = SynthesizerTrnMs768NSFsid_nono(
-      hps.data.filter_length // 2 + 1,
-      hps.train.segment_size // hps.data.hop_length,
-      **hps.model,
-      is_half=hps.train.fp16_run,
-    )
+    # net_g = SynthesizerTrnMs768NSFsid_nono(
+    #   hps.data.filter_length // 2 + 1,
+    #   hps.train.segment_size // hps.data.hop_length,
+    #   **hps.model,
+    #   is_half=hps.train.fp16_run,
+    # )
 
   # discriminator init
   if hps.model.mrd:
@@ -142,6 +142,7 @@ def main():
         pg = {k: v for k, v in pg.items() if not k.startswith('emb_g')}
 
       if hps.if_pretrain and hps.model.bigv and hps.sample_rate == '32k':
+        logger.info("Pretraining BigV in 32k")
         # drop any keys with 'dec' prefix, will print `_IncompatibleKeys` with missing keys
         pg = {k:v for k,v in pg.items() if not k.startswith('dec')}
       print(net_g.load_state_dict(pg, strict=False))
@@ -152,6 +153,8 @@ def main():
         print(net_d.MPD.load_state_dict(torch.load(hps.pretrainD, map_location="cpu")["model"]))
       else:
         logger.info("loading pretrained Discriminator from `%s`" % hps.pretrainD)
+        # # turning off `strict` flag to make room for SNAKE activations (instead of Leaky ReLU)
+        # print(net_d.load_state_dict(torch.load(hps.pretrainD, map_location="cpu")["model"], strict=False))
         print(net_d.load_state_dict(torch.load(hps.pretrainD, map_location="cpu")["model"]))
 
     if hps.if_pretrain and hps.model.mrd and hps.pretrainS != "":
@@ -161,7 +164,7 @@ def main():
       print(net_d.MRD.load_state_dict(mrd_dict))
 
     if hps.if_pretrain and hps.model.bigv and hps.sample_rate == '32k' and hps.pretrainV != "":
-      logger.info("loading pretrained BigVGAN from `%s`" % hps.pretrainV)
+      logger.info("==> loading pretrained BigVGAN from `%s`, can ignore missing keys above with `dec` prefix" % hps.pretrainV)
       vg_dict = torch.load(hps.pretrainV, map_location='cpu')['model_g']
       vg_dict = {k: v for k, v in vg_dict.items() if not k.startswith('conv_pre')}
       print(net_g.dec.load_state_dict(vg_dict, strict=False))
@@ -352,7 +355,7 @@ def train_and_evaluate(epoch, hps, nets, optims, scaler, loaders, logger, writer
           loss_gen, losses_gen = generator_loss([x[0] for x in disc_fake])
 
           # by default `loss_stft` is 0 unless `hps.model.mrstft` flag is set
-          loss_gen_all = loss_kl + loss_mel + loss_stft +  loss_fm + loss_gen
+          loss_gen_all = loss_kl + loss_mel + loss_stft + loss_fm + loss_gen
 
       else:
         y_d_hat_r, y_d_hat_g, fmap_r, fmap_g = net_d.forward_org(wave, y_hat)

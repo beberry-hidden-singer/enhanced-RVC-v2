@@ -73,6 +73,8 @@ class PreProcess:
     os.makedirs(self.gt_wavs_dir, exist_ok=True)
     os.makedirs(self.wavs16k_dir, exist_ok=True)
 
+    self.speaker_mapping = {}
+
   # def norm_write(self, tmp_audio, idx0, idx1):
   def norm_write(self, tmp_audio, idx0, idx1, spk_id=None):
     tmp_max = np.abs(tmp_audio).max()
@@ -102,8 +104,15 @@ class PreProcess:
       spk_id = None
       try:
         fname_split = os.path.basename(os.path.splitext(path)[0]).split('_')
-        spk_id = str(int(fname_split[-1]))
-      except ValueError:
+        spk_id = str(int(fname_split[1]))
+
+        if spk_id not in self.speaker_mapping:
+          self.speaker_mapping[spk_id] = str(len(self.speaker_mapping))
+          print(f"Spk ID mapped from SINGER_{spk_id} -> {self.speaker_mapping[spk_id]}")
+
+        spk_id = self.speaker_mapping[spk_id]
+
+      except (ValueError, IndexError):
         pass
       # print("Spk ID:", repr(spk_id))
 

@@ -14,12 +14,7 @@ import numpy as np
 import torch
 from fairseq import checkpoint_utils
 
-from lib.model.models import (
-  SynthesizerTrnMs256NSFsid,
-  SynthesizerTrnMs256NSFsid_nono,
-  SynthesizerTrnMs768NSFsid,
-  SynthesizerTrnMs768NSFsid_nono,
-)
+from lib.model.models import SynthesizerTrnMs768NSFsid
 from lib.model.vc_infer_pipeline import VC
 from lib.utils.config import Config
 from lib.utils.misc_utils import load_audio, HUBERT_FPATH
@@ -158,21 +153,12 @@ def get_vc(sid, to_return_protect0, to_return_protect1):
 
       ###楼下不这么折腾清理不干净
       if_f0 = cpt.get("f0", 1)
-      version = cpt.get("version", "v1")
-      if version == "v1":
-        if if_f0 == 1:
-          net_g = SynthesizerTrnMs256NSFsid(
-            *cpt["config"], is_half=config.is_half
-          )
-        else:
-          net_g = SynthesizerTrnMs256NSFsid_nono(*cpt["config"])
-      elif version == "v2":
-        if if_f0 == 1:
-          net_g = SynthesizerTrnMs768NSFsid(
-            *cpt["config"], is_half=config.is_half
-          )
-        else:
-          net_g = SynthesizerTrnMs768NSFsid_nono(*cpt["config"])
+      version = cpt.get("version", "v2")
+      if if_f0 == 1:
+        net_g = SynthesizerTrnMs768NSFsid(*cpt["config"], is_half=config.is_half)
+      else:
+        breakpoint()
+        # net_g = SynthesizerTrnMs768NSFsid_nono(*cpt["config"])
       del net_g, cpt
 
       if torch.cuda.is_available():
@@ -203,23 +189,20 @@ def get_vc(sid, to_return_protect0, to_return_protect1):
       "value": to_return_protect1,
       "__type__": "update",
     }
-  version = cpt.get("version", "v1")
-  if version == "v1":
-    if if_f0 == 1:
-      net_g = SynthesizerTrnMs256NSFsid(*cpt["config"], is_half=config.is_half)
-    else:
-      net_g = SynthesizerTrnMs256NSFsid_nono(*cpt["config"])
-  elif version == "v2":
-    if if_f0 == 1:
-      net_g = SynthesizerTrnMs768NSFsid(*cpt["config"], is_half=config.is_half)
-    else:
-      net_g = SynthesizerTrnMs768NSFsid_nono(*cpt["config"])
+  version = cpt.get("version", "v2")
+  if if_f0 == 1:
+    net_g = SynthesizerTrnMs768NSFsid(*cpt["config"], is_half=config.is_half)
+  else:
+    breakpoint()
+    # net_g = SynthesizerTrnMs768NSFsid_nono(*cpt["config"])
   del net_g.enc_q
   print(net_g.load_state_dict(cpt["weight"], strict=False))
   net_g.eval().to(config.device)
   if config.is_half:
+    print("Net G init as FP16")
     net_g = net_g.half()
   else:
+    print("Net G init as FP32")
     net_g = net_g.float()
   vc = VC(tgt_sr, config)
   n_spk = cpt["config"][-4]
@@ -265,7 +248,7 @@ with gr.Blocks() as app:
           maximum=109,
           step=1,
           label="Singer/Speaker ID",
-          value=6,
+          value=1,
           visible=False,
           interactive=True,
         )
@@ -277,11 +260,11 @@ with gr.Blocks() as app:
             vc_transform0 = gr.Number(label="Pitch Translation in int Semi-tones", value=0)
             input_audio0 = gr.Textbox(
               label="Path to Input Audio",
-              value="../../night_with_you_verse1_48k.wav",
+              value="haejimal_cover_40k.wav",
             )
             f0method0 = gr.Radio(
               label="Pitch Extraction Algorithm",
-              choices=["pm", "harvest", "crepe", "mangio-crepe", "rmvpe"],
+              choices=["pm", "harvest", "crepe", "mangio", "rmvpe"],
               value="rmvpe",
               interactive=True,
             )
@@ -313,7 +296,7 @@ with gr.Blocks() as app:
               minimum=0,
               maximum=1,
               label="Feature Ratio (controls accent strength; high value may result in artifacts)",
-              value=0.75,
+              value=0.33,
               interactive=True,
             )
           with gr.Column():
@@ -321,7 +304,7 @@ with gr.Blocks() as app:
               minimum=0,
               maximum=1,
               label="Adjust the volume envelope scaling. Closer to 0, the more it mimicks the volume of the original vocals. Can help mask noise and make volume sound more natural when set relatively low. Closer to 1 will be more of a consistently loud volume",
-              value=0.25,
+              value=0.,
               interactive=True,
             )
             protect0 = gr.Slider(

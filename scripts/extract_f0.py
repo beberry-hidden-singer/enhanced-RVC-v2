@@ -24,7 +24,7 @@ argparser.add_argument('-n', '--num_proc', type=int, default=4, help='number of 
 argparser.add_argument('-f', '--f0_method', type=str.lower, default='rmvpe', help='which f0 extraction algorithm to use',
                        choices=['pm', 'harvest', 'dio', 'crepe', 'mangio', 'mangio-crepe', 'rmvpe'])
 argparser.add_argument('--crepe_batch_size', type=int, default=512, help='batch size when using CREPE')
-argparser.add_argument('--mangio_hop_length', type=int, default=128, help='hop length when using MANGIO-CREPE')
+argparser.add_argument('--mangio_hop_length', type=int, default=160, help='hop length when using MANGIO-CREPE')
 
 args= argparser.parse_args()
 exp_dir = args.exp_dir

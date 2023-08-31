@@ -167,12 +167,32 @@ class VC(object):
       )
       f0 = np.nan_to_num(target)
 
+    elif f0_method == 'fcpe':
+      _JUMP_SAFE_PAD = False
+      if not hasattr(self, "model_fcpe"):
+        from lib.model.fcpe.model import FCPEInfer
+        self.model_fcpe = FCPEInfer(model_path='pretrain/fcpe/fcpe.pt')
+      if _JUMP_SAFE_PAD:
+        raw_audio = audio
+      f0 = self.model_fcpe(audio=raw_audio, sr=self.sample_rate)
+      f0 = f0.transpose(1, 2)
+      if not _JUMP_SAFE_PAD:
+        f0 = torch.nn.functional.interpolate(f0, size=int(n_frames), mode='nearest')
+      f0 = f0.transpose(1, 2)
+      f0 = f0.squeeze().cpu().numpy()
+      if _JUMP_SAFE_PAD:
+        f0 = np.array(
+          [f0[int(min(int(np.round(n * self.hop_size / self.sample_rate / 0.01)), len(f0) - 1))] for n in range(n_frames - start_frame)])
+        f0 = np.pad(f0.astype('float'), (start_frame, n_frames - len(f0) - start_frame))
+
+
     elif f0_method == "rmvpe":
       if not hasattr(self, "model_rmvpe"):
         from lib.model.rmvpe import RMVPE
         print("loading rmvpe model")
         self.model_rmvpe = RMVPE(RMVPE_FPATH, is_half=self.is_half, device=self.device)
       f0 = self.model_rmvpe.infer_from_audio(x, thred=0.03)
+
     f0 *= pow(2, f0_up_key / 12)
     # with open("test.txt","w")as f:f.write("\n".join([str(i)for i in f0.tolist()]))
     tf0 = self.sr // self.window  # 每秒f0点数
