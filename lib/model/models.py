@@ -37,6 +37,7 @@ class TextEncoder768(nn.Module):
     self.p_dropout = p_dropout
     self.emb_phone = nn.Linear(768, hidden_channels)
     self.lrelu = nn.LeakyReLU(0.1, inplace=True)
+    # self.snake = Snake1d(hidden_channels)
     if f0 == True:
       self.emb_pitch = nn.Embedding(256, hidden_channels)  # pitch 256
     self.encoder = attentions.Encoder(hidden_channels, filter_channels, n_heads, n_layers, kernel_size, p_dropout)
@@ -49,6 +50,8 @@ class TextEncoder768(nn.Module):
       x = self.emb_phone(phone) + self.emb_pitch(pitch)
     x = x * math.sqrt(self.hidden_channels)  # [b, t, h]
     x = self.lrelu(x)
+    # breakpoint()
+    # x = self.snake(x)
     x = torch.transpose(x, 1, -1)  # [b, h, t]
     x_mask = torch.unsqueeze(commons.sequence_mask(lengths, x.size(2)), 1).to(x.dtype)
     x = self.encoder(x * x_mask, x_mask)
@@ -296,6 +299,8 @@ class GeneratorNSF(torch.nn.Module):
           gin_channels,
           sr,
           is_half=False,
+          snake=False,
+          bigv=False
   ):
     super(GeneratorNSF, self).__init__()
     self.num_kernels = len(resblock_kernel_sizes)
@@ -323,6 +328,8 @@ class GeneratorNSF(torch.nn.Module):
         )
       )
 
+      # self.snakes.append(Snake1d(upsample_initial_channel // (2 ** i)))
+
       if i + 1 < len(upsample_rates):
         stride_f0 = np.prod(upsample_rates[i + 1 :])
         self.noise_convs.append(
@@ -338,14 +345,16 @@ class GeneratorNSF(torch.nn.Module):
         self.noise_convs.append(Conv1d(1, c_cur, kernel_size=1))
 
     self.resblocks = nn.ModuleList()
+    # self.reseblock_acts = nn.ModuleList()
     self.snakes = nn.ModuleList()
     for i in range(len(self.ups)):
       ch = upsample_initial_channel // (2 ** (i + 1))
-      # self.snakes.append(SnakeAlias(upsample_initial_channel // (2**i), C=upsample_initial_channel >> i))
-      self.snakes.append(Snake1d(upsample_initial_channel // (2**i)))
+      # self.reseblock_acts.append(Snake1d(upsample_initial_channel // (2 ** i)))
+      self.snakes.append(Snake1d(upsample_initial_channel // (2 ** i)))
       for j, (k, d) in enumerate(zip(resblock_kernel_sizes, resblock_dilation_sizes)):
         self.resblocks.append(resblock(ch, k, d))
 
+    # self.act_post = Snake1d(ch)
     self.snake_post = Snake1d(ch)
     # self.snake_post = SnakeAlias(ch, C=upsample_initial_channel >> len(self.ups))
     self.conv_post = Conv1d(ch, 1, 7, 1, padding=3, bias=False)
@@ -366,6 +375,8 @@ class GeneratorNSF(torch.nn.Module):
     for i in range(self.num_upsamples):
       # x = F.leaky_relu(x, modules.LRELU_SLOPE)
       x = self.snakes[i](x)
+      # x = self.reseblock_acts[i](x)
+
       x = self.ups[i](x)
       x_source = self.noise_convs[i](har_source)
       x = x + x_source
@@ -378,7 +389,9 @@ class GeneratorNSF(torch.nn.Module):
       x = xs / self.num_kernels
 
     # x = F.leaky_relu(x)
+    # x = self.act_post(x)
     x = self.snake_post(x)
+
     x = self.conv_post(x)
     x = torch.tanh(x)
     return x
@@ -419,6 +432,7 @@ class SynthesizerTrnMs768NSFsid(nn.Module):
           gin_channels,
           sr,
           bigv=False,
+          snake=False,
           **kwargs
   ):
     super().__init__()
@@ -451,8 +465,8 @@ class SynthesizerTrnMs768NSFsid(nn.Module):
       p_dropout,
     )
 
-    dec_cls = GeneratorBigV if bigv else GeneratorNSF
-    self.dec = dec_cls(
+    # dec_cls = GeneratorBigV if bigv else GeneratorNSF
+    self.dec = GeneratorNSF(
       inter_channels,
       resblock,
       resblock_kernel_sizes,

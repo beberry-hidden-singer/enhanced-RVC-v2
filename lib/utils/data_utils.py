@@ -112,7 +112,7 @@ class TextAudioLoaderMultiNSFsid(torch.utils.data.Dataset):
                     center=False,
                 )
                 spec = torch.squeeze(spec, 0)
-                torch.save(spec, spec_filename, _use_new_zipfile_serialization=False)
+                # torch.save(spec, spec_filename, _use_new_zipfile_serialization=False)
         else:
             spec = spectrogram_torch(
                 audio_norm,
@@ -123,7 +123,7 @@ class TextAudioLoaderMultiNSFsid(torch.utils.data.Dataset):
                 center=False,
             )
             spec = torch.squeeze(spec, 0)
-            torch.save(spec, spec_filename, _use_new_zipfile_serialization=False)
+            # torch.save(spec, spec_filename, _use_new_zipfile_serialization=False)
         return spec, audio_norm
 
     def __getitem__(self, index):
@@ -296,7 +296,7 @@ class TextAudioLoader(torch.utils.data.Dataset):
                     center=False,
                 )
                 spec = torch.squeeze(spec, 0)
-                torch.save(spec, spec_filename, _use_new_zipfile_serialization=False)
+                # torch.save(spec, spec_filename, _use_new_zipfile_serialization=False)
         else:
             spec = spectrogram_torch(
                 audio_norm,
@@ -307,7 +307,7 @@ class TextAudioLoader(torch.utils.data.Dataset):
                 center=False,
             )
             spec = torch.squeeze(spec, 0)
-            torch.save(spec, spec_filename, _use_new_zipfile_serialization=False)
+            # torch.save(spec, spec_filename, _use_new_zipfile_serialization=False)
         return spec, audio_norm
 
     def __getitem__(self, index):

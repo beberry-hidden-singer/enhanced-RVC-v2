@@ -36,18 +36,7 @@ torch.manual_seed(114514)
 config = Config()
 
 
-class ToolButton(gr.Button, gr.components.FormComponent):
-  """Small button with single emoji as text, fits inside gradio forms"""
-
-  def __init__(self, **kwargs):
-    super().__init__(variant="tool", **kwargs)
-
-  def get_block_name(self):
-    return "button"
-
-
 hubert_model = None
-
 
 def load_hubert():
   global hubert_model
@@ -132,7 +121,7 @@ def vc_single(
     index_info = "Using index:%s." % file_index if os.path.exists(file_index) else "Index not used."
     return "Success.\n %s\nTime:\n npy:%ss, f0:%ss, infer:%ss" % (index_info, times[0], times[1], times[2],), (tgt_sr, audio_opt)
   except:
-    info = traceback.format_exc()
+    info = info = traceback.format_exc()
     print(info)
     return info, (None, None)
 
@@ -166,6 +155,7 @@ def get_vc(sid, to_return_protect0, to_return_protect1):
 
       cpt = None
     return {"visible": False, "__type__": "update"}
+
   person = "%s/%s" % (weight_root, sid)
   print("loading %s" % person)
   cpt = torch.load(person, map_location="cpu")
@@ -195,7 +185,9 @@ def get_vc(sid, to_return_protect0, to_return_protect1):
   else:
     breakpoint()
     # net_g = SynthesizerTrnMs768NSFsid_nono(*cpt["config"])
+
   del net_g.enc_q
+
   print(net_g.load_state_dict(cpt["weight"], strict=False))
   net_g.eval().to(config.device)
   if config.is_half:
@@ -204,6 +196,7 @@ def get_vc(sid, to_return_protect0, to_return_protect1):
   else:
     print("Net G init as FP32")
     net_g = net_g.float()
+
   vc = VC(tgt_sr, config)
   n_spk = cpt["config"][-4]
   return (
@@ -319,7 +312,7 @@ with gr.Blocks() as app:
           but0 = gr.Button("Convert", variant="primary")
           with gr.Row():
             vc_output1 = gr.Textbox(label="Output Information")
-            vc_output2 = gr.Audio(label="Inferred Audio")
+            vc_output2 = gr.Audio(label="Result Audio Playback")
           but0.click(
             vc_single,
             [

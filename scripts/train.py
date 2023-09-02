@@ -94,7 +94,7 @@ def main():
     net_g = SynthesizerTrnMs768NSFsid(
       hps.data.filter_length // 2 + 1,
       hps.train.segment_size // hps.data.hop_length,
-      **hps.model, # now includes `bigv`
+      **hps.model, # now includes `snake`
       is_half=hps.train.fp16_run,
       sr=hps.sample_rate,
     )
@@ -141,10 +141,11 @@ def main():
       if hps.model.spk_embed_dim != 109:
         pg = {k: v for k, v in pg.items() if not k.startswith('emb_g')}
 
-      if hps.if_pretrain and hps.model.bigv and hps.sample_rate == '32k':
-        logger.info("Pretraining BigV in 32k")
-        # drop any keys with 'dec' prefix, will print `_IncompatibleKeys` with missing keys
-        pg = {k:v for k,v in pg.items() if not k.startswith('dec')}
+      # if hps.if_pretrain and hps.model.snake:
+      #   logger.info("Pretraining Generator with Snake in 32k")
+      #   # drop any keys with 'dec' prefix, will print `_IncompatibleKeys` with missing keys
+      #   pg = {k:v for k,v in pg.items() if 'act' not in k}
+
       print(net_g.load_state_dict(pg, strict=False))
 
     if hps.pretrainD != "":
@@ -163,12 +164,17 @@ def main():
       mrd_dict = {f'{k.replace("MRD.", "")}':v for k,v in sd_dict.items() if k.startswith('MRD')}
       print(net_d.MRD.load_state_dict(mrd_dict))
 
-    if hps.if_pretrain and hps.model.bigv and hps.sample_rate == '32k' and hps.pretrainV != "":
-      logger.info("==> loading pretrained BigVGAN from `%s`, can ignore missing keys above with `dec` prefix" % hps.pretrainV)
+    if hps.if_pretrain and hps.model.snake and hps.sample_rate == '32k' and hps.pretrainV != "":
+      logger.info("==> loading Snake pretrained weights for pre-training from BigVGAN 32k at `%s`" % hps.pretrainV)
       vg_dict = torch.load(hps.pretrainV, map_location='cpu')['model_g']
-      vg_dict = {k: v for k, v in vg_dict.items() if not k.startswith('conv_pre')}
+      vg_dict = {k: v for k, v in vg_dict.items() if not 'activation' in k}
+      print("VG Dict Keys:", vg_dict.keys())
       print(net_g.dec.load_state_dict(vg_dict, strict=False))
 
+  print(net_d)
+  print(net_g)
+
+  # breakpoint()
   logger.info("Model Summary")
   logger.info('Discriminator init type: %s', type(net_d))
   logger.info('Generator Vocoder init type: %s', type(net_g.dec))

@@ -18,8 +18,12 @@ logger = logging
 
 ### constants
 MATPLOTLIB_FLAG = False
-HUBERT_FPATH = '../pretrain/hubert_base.pt'
-RMVPE_FPATH = '../pretrain/rmvpe.pt'
+PRETRAIN_DIR = './pretrain'
+if not os.path.exists(PRETRAIN_DIR):
+  PRETRAIN_DIR = '../pretrain'
+assert os.path.exists(PRETRAIN_DIR)
+HUBERT_FPATH = f'{PRETRAIN_DIR}/hubert/hubert_base.pt'
+RMVPE_FPATH = f'{PRETRAIN_DIR}/rmvpe/model.pt'
 
 
 def get_device():
@@ -225,7 +229,7 @@ def get_hparams():
   parser.add_argument('--c_mel', type=float, default=45., help='multiplier for mel loss')
   parser.add_argument('--c_kl', type=float, default=1.0, help='multiplier for KL Div loss')
   parser.add_argument('--c_stft', type=float, default=0.5, help='multiplier for MR-STFT loss')
-  parser.add_argument('--bigv', action='store_true', help='whether to use BigVGAN Generator')
+  # parser.add_argument('--snake', action='store_true', help='whether to use Generator with Snake Activations')
   parser.add_argument('--mrd', action='store_true', help='whether to use Multi-Resolution Discriminator')
   parser.add_argument('--msstftd', action='store_true', help='whether to add Multi-Scale STFT Discriminator')
   parser.add_argument('--mrstft', action='store_true', help='whether to add Multi-Resolution STFT Loss term')
@@ -264,7 +268,7 @@ def get_hparams():
   hparams.train.c_mel = args.c_mel
   hparams.train.c_kl = args.c_kl
   hparams.train.c_stft = args.c_stft
-  hparams.model.bigv = args.bigv
+  # hparams.model.snake = args.snake
   hparams.model.msstftd = args.msstftd
   hparams.model.mrd = args.mrd
   hparams.model.mrstft = args.mrstft

@@ -31,7 +31,7 @@ def savee(ckpt, sr, if_f0, name, epoch, version, hps):
             hps.model.spk_embed_dim,
             hps.model.gin_channels,
             hps.data.sampling_rate,
-            hps.model.bigv
+            hps.model.snake
         ]
         opt["info"] = "%sepoch" % epoch
         opt["sr"] = sr
@@ -56,7 +56,7 @@ def show_info(path):
         return traceback.format_exc()
 
 
-def extract_small_model(path, name, sr, if_f0, info, bigv=False):
+def extract_small_model(path, name, sr, if_f0, info, snake=False):
     try:
         ckpt = torch.load(path, map_location="cpu")
         if "model" in ckpt:
@@ -87,7 +87,7 @@ def extract_small_model(path, name, sr, if_f0, info, bigv=False):
                 109,
                 256,
                 40000,
-                bigv
+                snake
             ]
         elif sr == "48k":
             opt["config"] = [
@@ -109,7 +109,7 @@ def extract_small_model(path, name, sr, if_f0, info, bigv=False):
                 109,
                 256,
                 48000,
-                bigv
+                snake
                 ]
         elif sr == "32k":
             opt["config"] = [
@@ -131,12 +131,12 @@ def extract_small_model(path, name, sr, if_f0, info, bigv=False):
                 109,
                 256,
                 32000,
-                bigv
+                snake
             ]
         if info == "":
             info = "Extracted model"
-        if bigv:
-            info = f'{info} with BigV'
+        if snake:
+            info = f'{info} with Snake'
         opt["info"] = info
         opt["version"] = 'v2'
         opt["sr"] = sr
@@ -189,6 +189,7 @@ def merge(path1, path2, alpha1, sr, f0, info, name, version):
             ckpt2 = ckpt2["weight"]
         if sorted(list(ckpt1.keys())) != sorted(list(ckpt2.keys())):
             return "Fail to merge the models. The model architectures are not the same."
+
         opt = OrderedDict()
         opt["weight"] = {}
         for key in ckpt1.keys():

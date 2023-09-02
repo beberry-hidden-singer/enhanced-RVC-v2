@@ -43,7 +43,7 @@
     "use_spectral_norm": false,
     "gin_channels": 256,
     "spk_embed_dim": 109,
-    "bigv": false,
+    "snake": false,
     "msstftd": false,
     "msstftd_filters": 32,
     "mrd": false,

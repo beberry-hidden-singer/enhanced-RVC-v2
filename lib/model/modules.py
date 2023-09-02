@@ -113,7 +113,7 @@ class WN(torch.nn.Module):
 
 
 class ResBlock1(torch.nn.Module):
-  def __init__(self, channels, kernel_size=3, dilation=(1, 3, 5), C=None):
+  def __init__(self, channels, kernel_size=3, dilation=(1, 3, 5), snake=False):
     super(ResBlock1, self).__init__()
 
     self.convs1 = nn.ModuleList([
@@ -136,12 +136,16 @@ class ResBlock1(torch.nn.Module):
     ])
     self.convs2.apply(init_weights)
 
-    # self.snake_acts2 = nn.ModuleList([Snake1d(channels) for _ in self.convs2])
     self.num_layers = len(self.convs1) + len(self.convs2)
-    # self.activations = nn.ModuleList([SnakeAlias(channels, C=C) for _ in range(self.num_layers)])
+    # self.activations = nn.ModuleList([
+    #   # Snake1d(channels) if snake else nn.LeakyReLU(LRELU_SLOPE) for _ in range(self.num_layers)
+    #   ### JUST USE RELU FOR STABLE TRAINING FROM GIVEN PRETRAAIND FILES!
+    #   nn.LeakyReLU(LRELU_SLOPE) for _ in range(self.num_layers)
+    # ])
 
   def forward(self, x, x_mask=None, DIM=None):
     # for c1, a1, c2, a2 in zip(self.convs1, self.activations[::2], self.convs2, self.activations[1::2]):
+
     for c1, c2 in zip(self.convs1, self.convs2):
       xt = F.leaky_relu(x, LRELU_SLOPE)
       # xt = a1(x, DIM)

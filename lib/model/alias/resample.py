@@ -19,7 +19,7 @@ class UpSample1d(nn.Module):
         self.pad_left = self.pad * self.stride + (self.kernel_size - self.stride) // 2
         self.pad_right = self.pad * self.stride + (self.kernel_size - self.stride + 1) // 2
         filter = kaiser_sinc_filter1d(cutoff=0.5 / ratio, half_width=0.6 / ratio, kernel_size=self.kernel_size)
-        # self.register_buffer("filter", filter)
+        self.register_buffer("filter", filter)
         self.conv_transpose1d_block = None
         if C is not None:
             self.conv_transpose1d_block = nn.ModuleList([nn.ConvTranspose1d(C, C,
@@ -34,8 +34,8 @@ class UpSample1d(nn.Module):
     # x: [B, C, T]
     def forward(self, x, C=None):
         if self.conv_transpose1d_block is None:
-            if C is None:
-                _, C, _ = x.shape
+            # if C is None:
+            _, C, _ = x.shape
 
             x = F.pad(x, (self.pad, self.pad), mode='replicate')
             x = self.ratio * F.conv_transpose1d(x, self.filter.expand(C, -1, -1), stride=self.stride, groups=C)

@@ -442,7 +442,6 @@ class GeneratorBigV(torch.nn.Module):
     # transposed conv-based upsamplers. does not apply anti-aliasing
     self.ups = nn.ModuleList()
     for i, (u, k) in enumerate(zip(upsample_rates, upsample_kernel_sizes)):
-      # print(f'ups: {i} {k}, {u}, {(k - u) // 2}')
       # base
       self.ups.append(
         weight_norm(

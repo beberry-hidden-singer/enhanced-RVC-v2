@@ -6,3 +6,4 @@ hubert_base.pt
 /logs
 .venv
 .idea/
+weights/

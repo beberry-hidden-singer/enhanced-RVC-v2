@@ -11,6 +11,7 @@ ervc-v2
   * can be init with pre-trained weights from [Sovits-5.0](https://github.com/PlayVoice/so-vits-svc-5.0/releases/tag/5.0)
 * [BigVGAN](lib/model/generator.py#L413)
   * can be init with pre-trained weights from [NSF-BigVGAN](https://github.com/PlayVoice/NSF-BigVGAN/releases/tag/augment)
+  * as of Aug 31 2023, inits GeneratorNSF but with all LeakyRelus replaced by Snake
 * option to use `crepe`, `mangio-crepe` and `rmvpe` when extracting f0
 
 ## Further modifications
@@ -24,7 +25,6 @@ ervc-v2
   * write pre-filelist that can handle multiple speakers
     * in this case speaker id must show at the end of filename preceded by underscore
   * extract and export small model weights in `./weights` dir
-* fpaths to `rmvpe.pt`  and `hubert_base.pt` are hardcoded in [misc_utils.py](lib/utils/misc_utils.py#L21)
 
 ## References
 * [Retrieval-based-Voice-Conversion-WebUI](https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI)
